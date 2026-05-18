@@ -107,10 +107,10 @@ function invertMapping(mapping: Readonly<Record<string, string>>): Record<string
 }
 
 function remapMergeEntry(
-  mergeEntry: Partial<Record<string, readonly ClassValue[]>>,
+  mergeEntry: Partial<Record<string, ClassValue>>,
   mapping: Readonly<Record<string, string>>
-): Partial<Record<string, readonly ClassValue[]>> {
-  const remapped: Partial<Record<string, readonly ClassValue[]>> = {};
+): Partial<Record<string, ClassValue>> {
+  const remapped: Partial<Record<string, ClassValue>> = {};
 
   for (const [slotName, values] of Object.entries(mergeEntry)) {
     remapped[remapSlotName(slotName, mapping)] = values;
@@ -146,8 +146,8 @@ export function aliasSlots<
     slotPlan: remappedConfig.slotPlan
   };
   const wrappedRecipe: SCVResult<RemappedSlotKeys<SlotKeys, Mapping>, Variants, Props> = (props?: Props, ...merges) => {
-    const sourceMerges = (merges.filter(Boolean) as Partial<Record<SlotKeys, readonly ClassValue[]>>[]).map(
-      mergeEntry => remapMergeEntry(mergeEntry, reverseMapping)
+    const sourceMerges = (merges.filter(Boolean) as Partial<Record<SlotKeys, ClassValue>>[]).map(mergeEntry =>
+      remapMergeEntry(mergeEntry, reverseMapping)
     );
 
     return remapRecipeOutput(recipe(props, ...sourceMerges), normalizedMapping) as Record<

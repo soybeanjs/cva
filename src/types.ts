@@ -144,8 +144,5 @@ export interface SCVResult<
   Variants extends VariantSchemaBase = VariantSchemaBase,
   Props extends Record<string, unknown> = SCVProps<Variants>
 > {
-  (
-    props?: Props,
-    ...merges: (Partial<Record<SlotKeys, readonly ClassValue[]>> | undefined)[]
-  ): Record<SlotKeys, string>;
+  (props?: Props, ...merges: (Partial<Record<SlotKeys, ClassValue>> | undefined)[]): Record<SlotKeys, string>;
 }
