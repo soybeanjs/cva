@@ -1,6 +1,6 @@
 {
   "name": "@soybeanjs/cva",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "High-performance Tailwind CSS variant recipes with split cv/scv APIs, slot alias inheritance, and extend composition.",
   "files": [
     "dist"

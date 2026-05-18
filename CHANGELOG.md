@@ -1,6 +1,16 @@
 # Changelog
 
 
+## [v0.0.5](https://github.com/soybeanjs/cva/compare/v0.0.4...v0.0.5) (2026-05-18)
+
+### &nbsp;&nbsp;&nbsp;💅 Refactors
+
+- **types**: improve type definitions and enhance variant handling &nbsp;-&nbsp; by @soybeanjs [<samp>(4e080)</samp>](https://github.com/soybeanjs/cva/commit/4e080f1)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [v0.0.4](https://github.com/soybeanjs/cva/compare/v0.0.3...v0.0.4) (2026-05-18)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
