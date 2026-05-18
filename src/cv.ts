@@ -8,7 +8,7 @@ import {
   normalizeVariantSchema,
   resolveSelections
 } from './shared';
-import type { CVConfig, CVExtendEntry, CVResolvedProps, CVResult, CVVariantsSchema } from './types';
+import type { CVConfig, CVExtendEntry, CVResolvedProps, CVResult, CVVariantsSchema, RecipeClassValue } from './types';
 
 function mergeDefaultVariants(
   preparedExtends: readonly CVRuntimeMeta[],
@@ -45,17 +45,26 @@ function normalizeExtends(extendEntries: readonly CVExtendEntry[] | undefined): 
   return prepared;
 }
 
-export function cv<Variants extends CVVariantsSchema>(
-  config: Omit<CVConfig<Variants, readonly []>, 'extend'> & { extend?: undefined }
-): CVResult<Variants, CVResolvedProps<Variants, readonly []>>;
+type InferCVConfigVariants<Config> = Config extends { variants?: infer Variants }
+  ? Variants extends CVVariantsSchema
+    ? Variants
+    : {}
+  : {};
 
-export function cv<Variants extends CVVariantsSchema, Extends extends readonly CVExtendEntry[]>(
-  config: Omit<CVConfig<Variants, Extends>, 'extend'> & { extend: Extends }
-): CVResult<Variants, CVResolvedProps<Variants, Extends>>;
+type InferCVConfigExtends<Config> = Config extends { extend?: infer Extends }
+  ? Extends extends readonly CVExtendEntry[]
+    ? Extends
+    : readonly []
+  : readonly [];
 
-export function cv<Variants extends CVVariantsSchema, Extends extends readonly unknown[] = readonly []>(
-  config: CVConfig<Variants, Extends>
-): CVResult<Variants, CVResolvedProps<Variants, Extends>> {
+type ResolvedCVProps<Config> = CVResolvedProps<InferCVConfigVariants<Config>, InferCVConfigExtends<Config>>;
+
+type ContextualCVConfig<Config> = CVConfig<InferCVConfigVariants<Config>, InferCVConfigExtends<Config>>;
+
+export function cv<Config extends CVConfig<any, any>>(
+  config: Config & ContextualCVConfig<Config>
+): CVResult<InferCVConfigVariants<Config>, ResolvedCVProps<Config>> {
+  type Variants = InferCVConfigVariants<Config>;
   const extendEntries = config.extend as readonly CVExtendEntry[] | undefined;
   const preparedExtends = normalizeExtends(extendEntries);
   const baseClassName = toClassString(config.base);
@@ -64,10 +73,9 @@ export function cv<Variants extends CVVariantsSchema, Extends extends readonly u
     preparedExtends,
     config.defaultVariants as Record<string, unknown> | undefined
   );
-  const normalizedVariants = normalizeVariantSchema(config.variants, classValue => toClassString(classValue)) as Record<
-    string,
-    Record<string, string>
-  >;
+  const normalizedVariants = normalizeVariantSchema(config.variants as Variants | undefined, classValue =>
+    toClassString(classValue as RecipeClassValue | undefined)
+  ) as Record<string, Record<string, string>>;
   const compoundVariants: readonly NormalizedCVCompoundVariant[] = (config.compoundVariants ?? []).map(variant => ({
     className: toClassString(variant.class ?? variant.className),
     conditions: normalizeConditions(variant as Record<string, unknown>)
@@ -113,7 +121,9 @@ export function cv<Variants extends CVVariantsSchema, Extends extends readonly u
     }
   };
 
-  const recipe: CVResult<Variants, CVResolvedProps<Variants, Extends>> = (props, ...merges) => {
+  type ResolvedProps = ResolvedCVProps<Config>;
+
+  const recipe: CVResult<Variants, ResolvedProps> = (props, ...merges) => {
     const output = meta.resolveRaw(props as Record<string, unknown> | undefined);
 
     if (merges.length === 0) {

@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-
 import { aliasSlots, cv, scv } from '../src/index';
 import type { VariantProps } from '../src/index';
 
@@ -118,6 +117,10 @@ describe('cv', () => {
         size: 'sm'
       },
       variants: {
+        disabled: {
+          false: 'opacity-100',
+          true: 'opacity-50'
+        },
         size: {
           lg: 'text-lg',
           sm: 'text-sm'
@@ -130,7 +133,13 @@ describe('cv', () => {
     });
 
     const button = cv({
+      extend: [surface],
       base: 'font-medium',
+      variants: {
+        intent: {
+          solid: 'shadow-sm'
+        }
+      },
       compoundVariants: [
         {
           class: 'uppercase',
@@ -140,12 +149,6 @@ describe('cv', () => {
       ],
       defaultVariants: {
         tone: 'primary'
-      },
-      extend: [surface],
-      variants: {
-        intent: {
-          solid: 'shadow-sm'
-        }
       }
     });
 
@@ -154,7 +157,28 @@ describe('cv', () => {
       IsEqual<
         ButtonProps,
         {
+          disabled?: boolean;
           intent?: 'solid';
+          size?: 'lg' | 'sm';
+          tone?: 'primary' | 'secondary';
+        }
+      >
+    > = true;
+
+    const extendSelf = cv({
+      extend: [surface],
+      defaultVariants: {
+        size: 'lg',
+        disabled: true
+      }
+    });
+
+    type ExtendSelfProps = VariantProps<typeof extendSelf>;
+    const extendSelfPropsAssertion: Assert<
+      IsEqual<
+        ExtendSelfProps,
+        {
+          disabled?: boolean;
           size?: 'lg' | 'sm';
           tone?: 'primary' | 'secondary';
         }
@@ -165,6 +189,8 @@ describe('cv', () => {
     expect(button({ intent: 'solid', size: 'lg', tone: 'secondary' })).toBe(
       'rounded-md text-lg bg-slate-200 font-medium shadow-sm'
     );
+    expect(extendSelf()).toBe('rounded-md opacity-50 text-lg');
+    expect(extendSelfPropsAssertion).toBe(true);
     expect(buttonPropsAssertion).toBe(true);
   });
 });
@@ -322,8 +348,7 @@ describe('scv', () => {
       compoundVariants: [
         {
           class: {
-            item: 'font-medium',
-            root: 'ring-1'
+            item: 'font-medium'
           },
           tone: 'primary'
         }
@@ -359,7 +384,7 @@ describe('scv', () => {
 
     expect(listB()).toEqual({
       subItem: 'px-2 text-white font-medium py-2 uppercase',
-      subRoot: 'rounded-md bg-slate-900 ring-1 shadow-sm border'
+      subRoot: 'rounded-md bg-slate-900 shadow-sm border'
     });
   });
 

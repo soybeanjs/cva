@@ -59,15 +59,18 @@ export interface CVResult<
   (props?: Props, ...merges: ClassValue[]): string;
 }
 
-export type CVExtendEntry = CVResult<CVVariantsSchema, Record<string, unknown>>;
+type AnyCVResult = CVResult<any, any>;
+type AnySCVResult = SCVResult<any, any, any>;
+
+export type CVExtendEntry = AnyCVResult;
 
 export interface CVConfig<
   Variants extends CVVariantsSchema = CVVariantsSchema,
   Extends extends UnknownExtends = readonly []
 > {
   base?: RecipeClassValue;
-  compoundVariants?: readonly CVCompoundVariant<Variants, CVSelectionSet<Variants, Extends>>[];
-  defaultVariants?: Partial<CVSelectionSet<Variants, Extends>>;
+  compoundVariants?: readonly CVCompoundVariant<NoInfer<Variants>, CVSelectionSet<NoInfer<Variants>, Extends>>[];
+  defaultVariants?: Partial<CVSelectionSet<NoInfer<Variants>, Extends>>;
   extend?: Extends;
   variants?: Variants;
 }
@@ -92,7 +95,7 @@ export type SCVVariantsSchema<SlotKeys extends string = string> = Record<
 >;
 
 export type SCVCompoundVariant<
-  Variants extends SCVVariantsSchema<SlotKeys>,
+  Variants extends VariantSchemaBase,
   SlotKeys extends string = string,
   Selections extends Record<string, unknown> = VariantSelection<Variants>
 > = {
@@ -102,17 +105,15 @@ export type SCVCompoundVariant<
   className?: SlotClassMap<SlotKeys>;
 };
 
-export type SCVExtendRecord<SlotKeys extends string = string> = Partial<Record<SlotKeys, CVResult<CVVariantsSchema>>>;
+export type SCVExtendRecord<SlotKeys extends string = string> = Partial<Record<SlotKeys, AnyCVResult>>;
 
-export type SCVExtendEntry<SlotKeys extends string = string> =
-  | SCVExtendRecord<SlotKeys>
-  | SCVResult<string, VariantSchemaBase, Record<string, unknown>>;
+export type SCVExtendEntry<SlotKeys extends string = string> = SCVExtendRecord<SlotKeys> | AnySCVResult;
 
 type ExtractVariantSelection<Source> =
-  Source extends SCVResult<string, VariantSchemaBase, infer Props>
+  Source extends SCVResult<any, VariantSchemaBase, infer Props>
     ? Props
     : Source extends object
-      ? NonNullable<Source[keyof Source]> extends CVResult<infer _Variants, infer Props>
+      ? NonNullable<Source[keyof Source]> extends CVResult<any, infer Props>
         ? Props
         : {}
       : {};
@@ -121,7 +122,7 @@ type ExtractSlotKeys<Source> =
   Source extends SCVResult<infer SlotKeys, VariantSchemaBase, infer _Props>
     ? SlotKeys
     : Source extends object
-      ? NonNullable<Source[keyof Source]> extends CVResult<CVVariantsSchema>
+      ? NonNullable<Source[keyof Source]> extends AnyCVResult
         ? keyof Source & string
         : never
       : never;
@@ -151,8 +152,12 @@ export interface SCVConfig<
   extend?: Extends;
   slots?: SlotClassMap<SlotKeys>;
   variants?: Variants;
-  compoundVariants?: readonly SCVCompoundVariant<Variants, SlotKeys, SCVSelectionSet<Variants, Extends>>[];
-  defaultVariants?: Partial<SCVSelectionSet<Variants, Extends>>;
+  compoundVariants?: readonly SCVCompoundVariant<
+    NoInfer<Variants>,
+    SCVOutputSlotKeysLoose<SlotKeys, Extends>,
+    SCVSelectionSet<NoInfer<Variants>, Extends>
+  >[];
+  defaultVariants?: Partial<SCVSelectionSet<NoInfer<Variants>, Extends>>;
   extendIgnore?: readonly NoInfer<SlotKeys>[];
 }
 

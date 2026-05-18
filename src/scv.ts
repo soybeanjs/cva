@@ -22,7 +22,6 @@ import type {
   SCVConfig,
   SCVExtendEntry,
   SCVExtendRecord,
-  SCVOutputSlotKeys,
   SCVOutputSlotKeysLoose,
   SCVResolvedProps,
   SCVResult,
@@ -82,8 +81,8 @@ function mergeDefaultVariants(
   return merged;
 }
 
-function normalizeExtends<SlotKeys extends string>(
-  extendEntries: readonly (SCVResult<string, VariantSchemaBase> | SCVExtendRecord<SlotKeys>)[] | undefined
+function normalizeExtends(
+  extendEntries: readonly (SCVResult<string, VariantSchemaBase> | SCVExtendRecord<string>)[] | undefined
 ): readonly PreparedExtend[] {
   const prepared: PreparedExtend[] = [];
 
@@ -113,8 +112,8 @@ function normalizeExtends<SlotKeys extends string>(
   return prepared;
 }
 
-function collectMappedSlots<SlotKeys extends string>(
-  extendEntries: readonly (SCVResult<string, VariantSchemaBase> | SCVExtendRecord<SlotKeys>)[] | undefined
+function collectMappedSlots(
+  extendEntries: readonly (SCVResult<string, VariantSchemaBase> | SCVExtendRecord<string>)[] | undefined
 ): string[] {
   const mappedSlots: string[] = [];
 
@@ -173,39 +172,60 @@ function collectLocalSlotNames<SlotKeys extends string>(slotClasses: SlotClassMa
   return Object.keys(slotClasses ?? {});
 }
 
-export function scv<SlotKeys extends string, Variants extends SCVVariantsSchema<SlotKeys>>(
-  config: Omit<SCVConfig<SlotKeys, Variants, readonly []>, 'extend'> & { extend?: undefined }
-): SCVResult<SlotKeys, Variants, SCVResolvedProps<Variants, readonly []>>;
+type InferSCVVariantSlotKeys<Config> = Config extends { variants?: infer Variants }
+  ? Variants extends Record<string, Record<string, infer SlotMap>>
+    ? keyof SlotMap & string
+    : never
+  : never;
 
-export function scv<
-  SlotKeys extends string,
-  Variants extends SCVVariantsSchema<SlotKeys>,
-  Extends extends readonly SCVExtendEntry<SlotKeys>[]
->(
-  config: Omit<SCVConfig<SlotKeys, Variants, Extends>, 'extend'> & { extend: Extends }
-): SCVResult<SCVOutputSlotKeys<SlotKeys, Extends>, Variants, SCVResolvedProps<Variants, Extends>>;
+type InferSCVConfigSlotKeys<Config> =
+  | (Config extends { slots?: infer Slots } ? keyof NonNullable<Slots> & string : never)
+  | InferSCVVariantSlotKeys<Config>
+  | (Config extends { extendIgnore?: readonly (infer Keys)[] } ? Keys & string : never);
 
-export function scv<
-  SlotKeys extends string,
-  Variants extends SCVVariantsSchema<SlotKeys>,
-  Extends extends readonly unknown[] = readonly []
->(
-  config: SCVConfig<SlotKeys, Variants, Extends>
-): SCVResult<SCVOutputSlotKeysLoose<SlotKeys, Extends>, Variants, SCVResolvedProps<Variants, Extends>> {
+type InferSCVConfigVariants<Config> = Config extends { variants?: infer Variants }
+  ? Variants extends SCVVariantsSchema<InferSCVConfigSlotKeys<Config>>
+    ? Variants
+    : {}
+  : {};
+
+type InferSCVConfigExtends<Config> = Config extends { extend?: infer Extends }
+  ? Extends extends readonly SCVExtendEntry[]
+    ? Extends
+    : readonly []
+  : readonly [];
+
+type ResolvedSCVSlotKeys<Config> = SCVOutputSlotKeysLoose<
+  InferSCVConfigSlotKeys<Config>,
+  InferSCVConfigExtends<Config>
+>;
+
+type ResolvedSCVProps<Config> = SCVResolvedProps<InferSCVConfigVariants<Config>, InferSCVConfigExtends<Config>>;
+
+type ContextualSCVConfig<Config> = SCVConfig<
+  InferSCVConfigSlotKeys<Config>,
+  InferSCVConfigVariants<Config>,
+  InferSCVConfigExtends<Config>
+>;
+
+export function scv<Config extends SCVConfig<any, any, any>>(
+  config: Config & ContextualSCVConfig<Config>
+): SCVResult<ResolvedSCVSlotKeys<Config>, InferSCVConfigVariants<Config>, ResolvedSCVProps<Config>> {
+  type SlotKeys = InferSCVConfigSlotKeys<Config>;
+  type Variants = InferSCVConfigVariants<Config>;
   const extendEntries = config.extend as
-    | readonly (SCVResult<string, VariantSchemaBase> | SCVExtendRecord<SlotKeys>)[]
+    | readonly (SCVResult<string, VariantSchemaBase> | SCVExtendRecord<string>)[]
     | undefined;
-  const localSlotNames = collectLocalSlotNames(config.slots);
+  const localSlotNames = collectLocalSlotNames(config.slots as SlotClassMap<SlotKeys> | undefined);
 
   const mappedSlots = collectMappedSlots(extendEntries);
   const preparedExtends = normalizeExtends(extendEntries);
   const { slotOrder, slotPlan } = mergeConfig(localSlotNames, preparedExtends, mappedSlots);
   const extendIgnore = new Set<string>(config.extendIgnore ?? []);
   const localSlots = createSlotClassParts(config.slots);
-  const localVariants = normalizeVariantSchema(config.variants, slotMap => createSlotClassParts(slotMap)) as Record<
-    string,
-    Record<string, NormalizedSlotClassParts>
-  >;
+  const localVariants = normalizeVariantSchema(config.variants as Variants | undefined, slotMap =>
+    createSlotClassParts(slotMap as Partial<Record<string, RecipeClassValue>> | undefined)
+  ) as Record<string, Record<string, NormalizedSlotClassParts>>;
   const localCompoundVariants: readonly NormalizedSCVCompoundVariant[] = (config.compoundVariants ?? []).map(
     variant => ({
       classParts: createSlotClassParts(variant.class ?? variant.className),
@@ -214,7 +234,7 @@ export function scv<
   );
   const resolvedExtends = normalizeExtends(extendEntries);
   const defaultVariants = mergeDefaultVariants(resolvedExtends, config.defaultVariants);
-  type ResolvedProps = SCVResolvedProps<Variants, Extends>;
+  type ResolvedProps = ResolvedSCVProps<Config>;
 
   const meta: SCVRuntimeMeta = {
     config: config as SCVConfig<
@@ -278,7 +298,7 @@ export function scv<
     slotPlan
   };
 
-  const recipe: SCVResult<SCVOutputSlotKeysLoose<SlotKeys, Extends>, Variants, ResolvedProps> = (
+  const recipe: SCVResult<ResolvedSCVSlotKeys<Config>, Variants, ResolvedProps> = (
     props?: ResolvedProps,
     ...merges
   ) => {
@@ -291,7 +311,7 @@ export function scv<
       return [slotName, mergeParts ? mergeTailwindClasses(slotParts) : joinClassParts(slotParts)];
     });
 
-    return Object.fromEntries(outputEntries) as Record<SCVOutputSlotKeysLoose<SlotKeys, Extends>, string>;
+    return Object.fromEntries(outputEntries) as Record<ResolvedSCVSlotKeys<Config>, string>;
   };
 
   return attachRecipeMeta(recipe, meta);
