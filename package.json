@@ -1,0 +1,64 @@
+{
+  "name": "@soybeanjs/cva",
+  "version": "0.0.1",
+  "description": "High-performance Tailwind CSS variant recipes with split cv/scv APIs, slot alias inheritance, and extend composition.",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "bench": "vitest bench ./benchmark --run",
+    "bench:cv": "vitest bench ./benchmark/cv.bench.ts --run",
+    "bench:scv": "vitest bench ./benchmark/scv.bench.ts --run",
+    "build": "tsdown",
+    "cleanup": "soy cleanup",
+    "commit": "soy git-commit",
+    "lint": "oxlint --fix",
+    "fmt": "oxfmt",
+    "prepare": "simple-git-hooks",
+    "publish-pkg": "pnpm publish --access public",
+    "release": "soy release",
+    "test": "vitest --run",
+    "typecheck": "tsc --noEmit --skipLibCheck",
+    "upkg": "soy ncu"
+  },
+  "dependencies": {
+    "tailwind-merge": "^3.3.1"
+  },
+  "devDependencies": {
+    "@soybeanjs/cli": "^1.7.2",
+    "@types/node": "^25.8.0",
+    "class-variance-authority": "^0.7.1",
+    "css-variants": "^2.3.5",
+    "lint-staged": "^17.0.5",
+    "oxfmt": "^0.50.0",
+    "oxlint": "^1.65.0",
+    "simple-git-hooks": "^2.13.1",
+    "tailwind-variants": "^3.2.2",
+    "tsdown": "^0.22.0",
+    "tsx": "^4.22.1",
+    "typescript": "^6.0.3",
+    "vitest": "^3.2.4"
+  },
+  "simple-git-hooks": {
+    "commit-msg": "pnpm soy git-commit-verify",
+    "pre-commit": "pnpm typecheck && pnpm lint-staged"
+  },
+  "lint-staged": {
+    "*": "oxlint --fix && oxfmt"
+  },
+  "packageManager": "pnpm@11.1.2"
+}
