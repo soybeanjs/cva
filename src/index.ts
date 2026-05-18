@@ -1,6 +1,8 @@
-export { aliasSlots } from './alias-slots';
+export { alias } from './alias';
 export { cv } from './cv';
+export { derive } from './derive';
 export { scv } from './scv';
+export { defaults } from './defaults';
 
 export type {
   ClassValue,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { aliasSlots, cv, scv } from '../src/index';
+import { alias, cv, defaults, derive, scv } from '../src/index';
 import type { VariantProps } from '../src/index';
 
 type IsEqual<Left, Right> =
@@ -193,6 +193,118 @@ describe('cv', () => {
     expect(extendSelfPropsAssertion).toBe(true);
     expect(buttonPropsAssertion).toBe(true);
   });
+
+  it('derives incoming variants without rewriting recipe defaults and keeps scv.extend compatibility', () => {
+    const button = cv({
+      base: 'inline-flex',
+      defaultVariants: {
+        fitContent: false,
+        size: 'md'
+      },
+      variants: {
+        fitContent: {
+          false: '',
+          true: 'w-fit h-fit'
+        },
+        size: {
+          md: 'text-sm',
+          sm: 'text-xs'
+        }
+      }
+    });
+
+    const iconButton = derive(button, props =>
+      props.size ? { fitContent: true, size: 'sm' as const } : { fitContent: true }
+    );
+
+    const card = scv({
+      extend: [{ close: iconButton }],
+      slots: {
+        close: '',
+        root: 'rounded-lg'
+      }
+    });
+
+    expect(button()).toBe('inline-flex text-sm');
+    expect(iconButton()).toBe('inline-flex w-fit h-fit text-sm');
+    expect(card({ size: 'sm' }).close).toBe('inline-flex w-fit h-fit text-xs');
+  });
+
+  it('derives variants before resolving classes while preserving scv.extend compatibility', () => {
+    const button = cv({
+      base: 'inline-flex',
+      defaultVariants: {
+        fitContent: false,
+        size: 'md'
+      },
+      variants: {
+        fitContent: {
+          false: '',
+          true: 'w-fit h-fit'
+        },
+        size: {
+          lg: 'text-lg',
+          md: 'text-sm',
+          sm: 'text-xs'
+        }
+      }
+    });
+
+    const iconButton = derive(button, props => ({
+      fitContent: true,
+      size: props.size === 'lg' ? ('sm' as const) : ('lg' as const)
+    }));
+
+    const card = scv({
+      extend: [{ close: iconButton }],
+      slots: {
+        close: '',
+        root: 'rounded-lg'
+      }
+    });
+
+    expect(iconButton()).toBe('inline-flex w-fit h-fit text-xs');
+    expect(iconButton({ size: 'lg' })).toBe('inline-flex w-fit h-fit text-xs');
+    expect(card({ size: 'lg' }).close).toBe('inline-flex w-fit h-fit text-xs');
+  });
+
+  it('presets defaultVariants and keeps scv.extend compatibility', () => {
+    const button = cv({
+      base: 'inline-flex',
+      defaultVariants: {
+        fitContent: false,
+        size: 'md'
+      },
+      variants: {
+        fitContent: {
+          false: '',
+          true: 'w-fit h-fit'
+        },
+        size: {
+          md: 'text-sm',
+          sm: 'text-xs'
+        }
+      }
+    });
+
+    const iconButton = defaults(button, {
+      fitContent: true,
+      size: 'sm'
+    });
+
+    const card = scv({
+      extend: [{ close: iconButton }],
+      slots: {
+        close: '',
+        root: 'rounded-lg'
+      }
+    });
+
+    expect(button()).toBe('inline-flex text-sm');
+    expect(iconButton()).toBe('inline-flex w-fit h-fit text-xs');
+    expect(iconButton({ size: 'md' })).toBe('inline-flex w-fit h-fit text-sm');
+    expect(card().close).toBe('inline-flex w-fit h-fit text-xs');
+  });
 });
 
 describe('scv', () => {
@@ -287,7 +399,7 @@ describe('scv', () => {
     });
   });
 
-  it('supports alias remapping inheritance across scv extensions', () => {
+  it('supports alias remapping across scv extensions', () => {
     const baseCard = scv({
       slots: {
         body: 'p-4',
@@ -323,7 +435,7 @@ describe('scv', () => {
           tone: 'primary'
         }
       ],
-      extend: [aliasSlots(baseCard, { root: 'header' })],
+      extend: [alias(baseCard, { root: 'header' })],
       variants: {
         tone: {
           primary: {
@@ -339,7 +451,7 @@ describe('scv', () => {
     });
   });
 
-  it('maps inherited root and item slots to subRoot and subItem through aliases', () => {
+  it('remaps inherited root and item slots to subRoot and subItem', () => {
     const listA = scv({
       slots: {
         item: 'px-2',
@@ -371,7 +483,7 @@ describe('scv', () => {
         subItem: 'py-2',
         subRoot: 'shadow-sm'
       },
-      extend: [aliasSlots(listA, { item: 'subItem', root: 'subRoot' })],
+      extend: [alias(listA, { item: 'subItem', root: 'subRoot' })],
       variants: {
         tone: {
           primary: {

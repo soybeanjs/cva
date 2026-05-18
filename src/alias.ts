@@ -119,7 +119,7 @@ function remapMergeEntry(
   return remapped;
 }
 
-export function aliasSlots<
+export function alias<
   SlotKeys extends string,
   Variants extends VariantSchemaBase,
   Props extends Record<string, unknown>,
@@ -131,7 +131,7 @@ export function aliasSlots<
   const meta = getSCVMeta(recipe);
 
   if (!meta) {
-    throw new TypeError('aliasSlots only accepts scv results.');
+    throw new TypeError('alias only accepts scv results.');
   }
 
   const normalizedMapping = Object.fromEntries(

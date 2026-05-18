@@ -4,7 +4,9 @@ High-performance Tailwind CSS variant recipes with split `cv` and `scv` APIs.
 
 - `cv`: single-output variant recipes that return one class string
 - `scv`: multi-slot variant recipes that return a slot-to-class map
-- `aliasSlots`: remap inherited slot names without changing variant props
+- `alias`: remap inherited slot names without changing variant props
+- `derive`: compute variant props from incoming props at call time
+- `defaults`: preset recipe default variants without rebuilding the recipe
 - `VariantProps`: extract the public variant prop type from a recipe
 - runtime overrides use rest arguments instead of `class` / `className` props
 
@@ -15,7 +17,7 @@ pnpm add @soybeanjs/cva
 ```
 
 ```ts
-import { aliasSlots, cv, scv } from '@soybeanjs/cva';
+import { alias, cv, derive, defaults, scv } from '@soybeanjs/cva';
 import type { VariantProps } from '@soybeanjs/cva';
 ```
 
@@ -240,12 +242,92 @@ scv({
 });
 ```
 
-## `aliasSlots`
+## Recipe wrappers
 
-Use `aliasSlots` when you want to inherit an `scv` recipe but expose different slot names in the child recipe.
+Use these helpers when you want to keep recipe metadata intact while changing how variants resolve.
+
+### `derive`
+
+`derive` computes the next variant selection from the incoming props at call time.
 
 ```ts
-import { aliasSlots, scv } from '@soybeanjs/cva';
+import { cv, derive } from '@soybeanjs/cva';
+
+const button = cv({
+  defaultVariants: {
+    size: 'md'
+  },
+  variants: {
+    fitContent: {
+      false: '',
+      true: 'w-fit h-fit'
+    },
+    size: {
+      sm: 'text-xs',
+      md: 'text-sm',
+      lg: 'text-lg'
+    }
+  }
+});
+
+const compactButton = derive(button, props => ({
+  fitContent: true,
+  size: props.size === 'lg' ? 'sm' : props.size
+}));
+
+compactButton();
+// incoming props are derived before class resolution
+
+compactButton({ size: 'lg' });
+// resolves as if size were 'sm'
+```
+
+Use this when the next variants depend on the current call's props.
+
+### `defaults`
+
+`defaults` presets a recipe's `defaultVariants` while keeping explicit call-time props higher priority.
+
+```ts
+import { cv, defaults } from '@soybeanjs/cva';
+
+const button = cv({
+  defaultVariants: {
+    fitContent: false,
+    size: 'md'
+  },
+  variants: {
+    fitContent: {
+      false: '',
+      true: 'w-fit h-fit'
+    },
+    size: {
+      sm: 'text-xs',
+      md: 'text-sm'
+    }
+  }
+});
+
+const iconButton = defaults(button, {
+  fitContent: true,
+  size: 'sm'
+});
+
+iconButton();
+// resolves with fitContent=true and size='sm' as defaults
+
+iconButton({ size: 'md' });
+// explicit props still override the new defaults
+```
+
+Use this when you want a recipe variant preset, not dynamic remapping.
+
+## `alias`
+
+Use `alias` when you want to inherit an `scv` recipe but expose different slot names in the child recipe.
+
+```ts
+import { alias, scv } from '@soybeanjs/cva';
 
 const card = scv({
   slots: {
@@ -263,7 +345,7 @@ const card = scv({
 });
 
 const sectionCard = scv({
-  extend: [aliasSlots(card, { root: 'header' })],
+  extend: [alias(card, { root: 'header' })],
   slots: {
     header: 'font-semibold'
   },
