@@ -58,7 +58,7 @@
     "pre-commit": "pnpm typecheck && pnpm lint-staged"
   },
   "lint-staged": {
-    "*": "oxlint --fix && oxfmt"
+    "*": "oxlint . --fix && oxfmt"
   },
   "packageManager": "pnpm@11.1.2"
 }

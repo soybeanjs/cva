@@ -12,6 +12,6 @@
     "unicorn/no-empty-file": "off",
     "import/no-unassigned-import": "off",
     "unicorn/require-module-specifiers": "off",
-    "eslint(no-underscore-dangle)": "off"
+    "no-underscore-dangle": "off"
   }
 }
