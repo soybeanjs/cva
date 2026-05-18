@@ -1,6 +1,16 @@
 # Changelog
 
 
+## [v0.0.4](https://github.com/soybeanjs/cva/compare/v0.0.3...v0.0.4) (2026-05-18)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **cv**: add support for cv extension with inherited variant props and defaults &nbsp;-&nbsp; by @soybeanjs [<samp>(c0320)</samp>](https://github.com/soybeanjs/cva/commit/c0320ff)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [v0.0.3](https://github.com/soybeanjs/cva/compare/v0.0.2...v0.0.3) (2026-05-18)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
