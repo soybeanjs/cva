@@ -1,6 +1,16 @@
 # Changelog
 
 
+## [v0.0.3](https://github.com/soybeanjs/cva/compare/v0.0.2...v0.0.3) (2026-05-18)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **types**: update ClassValue type to remove readonly array references &nbsp;-&nbsp; by @soybeanjs [<samp>(7cac3)</samp>](https://github.com/soybeanjs/cva/commit/7cac36b)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [v0.0.2](https://github.com/soybeanjs/cva/compare/v0.0.2...main) (2026-05-18)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
