@@ -1,6 +1,16 @@
 # Changelog
 
 
+## [v0.0.7](https://github.com/soybeanjs/cva/compare/v0.0.6...v0.0.7) (2026-05-18)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **extend**: add extendBase and enhance type safety and flexibility &nbsp;-&nbsp; by @soybeanjs [<samp>(a0882)</samp>](https://github.com/soybeanjs/cva/commit/a0882f3)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [v0.0.6](https://github.com/soybeanjs/cva/compare/v0.0.5...v0.0.6) (2026-05-18)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
