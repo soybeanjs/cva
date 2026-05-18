@@ -140,12 +140,19 @@ function collectMappedSlots<SlotKeys extends string>(
 }
 
 function buildMergeParts<SlotKeys extends string>(
-  merges: readonly Partial<Record<SlotKeys, readonly ClassValue[]>>[] | undefined,
+  merges: readonly (Partial<Record<SlotKeys, readonly ClassValue[]>> | undefined)[] | undefined,
   slotPlan: Readonly<Record<string, SlotBlueprint>>
 ): Readonly<Record<string, string[]>> {
   const output: Record<string, string[]> = {};
+  if (!merges) {
+    return output;
+  }
 
-  for (const mergeEntry of merges ?? []) {
+  for (const mergeEntry of merges) {
+    if (!mergeEntry) {
+      continue;
+    }
+
     for (const [slotName, values] of Object.entries(mergeEntry as Record<string, readonly ClassValue[] | undefined>)) {
       if (!(slotName in slotPlan)) {
         continue;

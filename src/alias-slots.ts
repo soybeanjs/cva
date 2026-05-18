@@ -146,9 +146,9 @@ export function aliasSlots<
     slotPlan: remappedConfig.slotPlan
   };
   const wrappedRecipe: SCVResult<RemappedSlotKeys<SlotKeys, Mapping>, Variants, Props> = (props?: Props, ...merges) => {
-    const sourceMerges = merges.map(mergeEntry => remapMergeEntry(mergeEntry, reverseMapping)) as Partial<
-      Record<SlotKeys, readonly ClassValue[]>
-    >[];
+    const sourceMerges = (merges.filter(Boolean) as Partial<Record<SlotKeys, readonly ClassValue[]>>[]).map(
+      mergeEntry => remapMergeEntry(mergeEntry, reverseMapping)
+    );
 
     return remapRecipeOutput(recipe(props, ...sourceMerges), normalizedMapping) as Record<
       RemappedSlotKeys<SlotKeys, Mapping>,

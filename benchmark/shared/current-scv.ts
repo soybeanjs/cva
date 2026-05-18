@@ -118,30 +118,6 @@ export const currentScvWithDefaults = scv({
 });
 
 export const currentScvCompoundVariants = scv({
-  compoundVariants: [
-    {
-      class: {
-        content: 'tracking-wide',
-        root: 'font-bold shadow-lg'
-      },
-      color: 'primary',
-      size: 'lg'
-    },
-    {
-      class: {
-        root: 'font-semibold'
-      },
-      color: 'danger',
-      size: ['sm', 'md']
-    },
-    {
-      class: {
-        root: 'pointer-events-none'
-      },
-      color: ['primary', 'secondary', 'danger'],
-      disabled: true
-    }
-  ],
   slots: {
     content: 'btn-content',
     icon: 'btn-icon',
@@ -187,7 +163,31 @@ export const currentScvCompoundVariants = scv({
         root: 'px-2 py-1'
       }
     }
-  }
+  },
+  compoundVariants: [
+    {
+      class: {
+        content: 'tracking-wide',
+        root: 'font-bold shadow-lg'
+      },
+      color: 'primary',
+      size: 'lg'
+    },
+    {
+      class: {
+        root: 'font-semibold'
+      },
+      color: 'danger',
+      size: ['sm', 'md']
+    },
+    {
+      class: {
+        root: 'pointer-events-none'
+      },
+      color: ['primary', 'secondary', 'danger'],
+      disabled: true
+    }
+  ]
 });
 
 export const currentScvComplexCard = scv({

@@ -68,7 +68,9 @@ export type SCVCompoundVariant<
   Variants extends SCVVariantsSchema<SlotKeys>,
   SlotKeys extends string = string,
   Selections extends Record<string, unknown> = VariantSelection<Variants>
-> = Selections & {
+> = {
+  [Key in keyof Selections]?: Exclude<Selections[Key], undefined> | readonly Exclude<Selections[Key], undefined>[];
+} & {
   class?: SlotClassMap<SlotKeys>;
   className?: SlotClassMap<SlotKeys>;
 };
@@ -142,5 +144,8 @@ export interface SCVResult<
   Variants extends VariantSchemaBase = VariantSchemaBase,
   Props extends Record<string, unknown> = SCVProps<Variants>
 > {
-  (props?: Props, ...merges: Partial<Record<SlotKeys, readonly ClassValue[]>>[]): Record<SlotKeys, string>;
+  (
+    props?: Props,
+    ...merges: (Partial<Record<SlotKeys, readonly ClassValue[]>> | undefined)[]
+  ): Record<SlotKeys, string>;
 }
