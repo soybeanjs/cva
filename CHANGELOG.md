@@ -1,6 +1,16 @@
 # Changelog
 
 
+## [v0.0.8](https://github.com/soybeanjs/cva/compare/v0.0.7...v0.0.8) (2026-05-18)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **runtime**: add support for runtime default variants in cv and scv functions &nbsp;-&nbsp; by @soybeanjs [<samp>(c1731)</samp>](https://github.com/soybeanjs/cva/commit/c1731c5)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [v0.0.7](https://github.com/soybeanjs/cva/compare/v0.0.6...v0.0.7) (2026-05-18)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
