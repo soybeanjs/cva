@@ -1,6 +1,16 @@
 # Changelog
 
 
+## [v0.0.9](https://github.com/soybeanjs/cva/compare/v0.0.8...v0.0.9) (2026-05-18)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **projects**: add cn and merge functions for class flattening and conflict resolution &nbsp;-&nbsp; by @soybeanjs [<samp>(4cfcb)</samp>](https://github.com/soybeanjs/cva/commit/4cfcbba)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [v0.0.8](https://github.com/soybeanjs/cva/compare/v0.0.7...v0.0.8) (2026-05-18)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
