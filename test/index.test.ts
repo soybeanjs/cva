@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { alias, cv, defaults, derive, scv } from '../src/index';
+import { alias, cn, cv, defaults, derive, scv } from '../src/index';
 import type { VariantProps } from '../src/index';
 
 type IsEqual<Left, Right> =
@@ -8,6 +8,12 @@ type IsEqual<Left, Right> =
 type Assert<Type extends true> = Type;
 
 describe('cv', () => {
+  it('exports cn with css-variants style class flattening', () => {
+    expect(
+      cn('inline-flex', ['items-center', 0, false, ['justify-center']], { 'font-medium': true, hidden: false })
+    ).toBe('inline-flex items-center justify-center font-medium');
+  });
+
   it('exposes VariantProps for cv results', () => {
     const button = cv({
       variants: {

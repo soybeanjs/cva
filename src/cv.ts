@@ -1,4 +1,5 @@
-import { joinClassParts, mergeTailwindClasses, toClassString } from './class-value';
+import { merge } from './merge';
+import { cn } from './cn';
 import { attachRecipeMeta, getCVMeta, getCurrentRecipeProps, withRecipePropsContext } from './internal';
 import type { CVRuntimeMeta, NormalizedCVCompoundVariant } from './internal';
 import {
@@ -80,7 +81,7 @@ export function cv<
 >(config: CVConfig<Variants, Extends>) {
   const extendEntries = config.extend as readonly CVExtendEntry[] | undefined;
   const preparedExtends = normalizeExtends(extendEntries);
-  const baseClassName = toClassString(config.base);
+  const baseClassName = cn(config.base);
   const extendBase = config.extendBase as
     | ((props?: CVResolvedProps<NoInfer<Variants>, NoInfer<Extends>>) => RecipeClassValue)
     | undefined;
@@ -94,10 +95,10 @@ export function cv<
     config.defaultVariants as Record<string, unknown> | undefined
   );
   const normalizedVariants = normalizeVariantSchema(config.variants as Variants | undefined, classValue =>
-    toClassString(classValue as RecipeClassValue | undefined)
+    cn(classValue as RecipeClassValue | undefined)
   ) as Record<string, Record<string, string>>;
   const compoundVariants: readonly NormalizedCVCompoundVariant[] = (config.compoundVariants ?? []).map(variant => ({
-    className: toClassString(variant.class ?? variant.className),
+    className: cn(variant.class ?? variant.className),
     conditions: normalizeConditions(variant as Record<string, unknown>)
   }));
 
@@ -116,7 +117,7 @@ export function cv<
       }
 
       const extendedBaseClassName = withRecipePropsContext(resolvedProps, () =>
-        toClassString(extendBase?.(resolvedProps as CVResolvedProps<NoInfer<Variants>, NoInfer<Extends>>))
+        cn(extendBase?.(resolvedProps as CVResolvedProps<NoInfer<Variants>, NoInfer<Extends>>))
       );
 
       if (extendedBaseClassName) {
@@ -158,20 +159,20 @@ export function cv<
     const output = meta.resolveRaw(resolvedProps);
 
     if (merges.length === 0) {
-      return joinClassParts(output);
+      return cn(output);
     }
 
     const mergedParts = [...output];
 
     for (const mergeValue of merges) {
-      const mergeClassName = toClassString(mergeValue);
+      const mergeClassName = cn(mergeValue);
 
       if (mergeClassName) {
         mergedParts.push(mergeClassName);
       }
     }
 
-    return mergeTailwindClasses(mergedParts);
+    return merge(mergedParts);
   };
 
   return attachRecipeMeta(recipe, meta) as CVResult<

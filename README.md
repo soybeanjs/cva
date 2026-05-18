@@ -8,6 +8,8 @@ High-performance Tailwind CSS variant recipes with split `cv` and `scv` APIs.
 - `derive`: compute variant props from incoming props at call time
 - `defaults`: preset recipe default variants without rebuilding the recipe
 - `extendBase`: compute dynamic base classes or slots from resolved variant props
+- `cn`: flatten `ClassValue` inputs with css-variants style semantics
+- `merge`: merge class parts with `tailwind-merge`
 - `VariantProps`: extract the public variant prop type from a recipe
 - runtime overrides use rest arguments instead of `class` / `className` props
 
@@ -18,7 +20,7 @@ pnpm add @soybeanjs/cva
 ```
 
 ```ts
-import { alias, cv, derive, defaults, scv } from '@soybeanjs/cva';
+import { alias, cn, cv, derive, defaults, merge, scv } from '@soybeanjs/cva';
 import type { VariantProps } from '@soybeanjs/cva';
 ```
 
@@ -30,6 +32,32 @@ This package keeps the two common recipe shapes separate:
 - use `scv` when the result is a record of named slots
 
 That split keeps the runtime small, keeps the types direct, and avoids overloading a single API with two different output models.
+
+## `cn`
+
+Use `cn` when you want css-variants style class flattening for plain `ClassValue` inputs.
+
+```ts
+import { cn } from '@soybeanjs/cva';
+
+cn('inline-flex', ['items-center', ['justify-center']], { 'font-medium': true, hidden: false });
+// "inline-flex items-center justify-center font-medium"
+```
+
+`cn` only flattens values. It does not resolve Tailwind conflicts.
+
+## `merge`
+
+Use `merge` when you already have an ordered list of class parts and want Tailwind conflict resolution.
+
+```ts
+import { merge } from '@soybeanjs/cva';
+
+merge(['px-2 text-sm', 'px-4', 'mt-2']);
+// "text-sm px-4 mt-2"
+```
+
+`merge` is a thin wrapper around `tailwind-merge` and is useful when classes are already collected as string parts.
 
 ## `cv`
 

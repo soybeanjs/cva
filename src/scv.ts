@@ -1,4 +1,5 @@
-import { joinClassParts, mergeTailwindClasses, toClassParts, toClassString } from './class-value';
+import { merge } from './merge';
+import { cn } from './cn';
 import { getCVMeta, getSCVMeta, attachRecipeMeta, getCurrentRecipeProps, withRecipePropsContext } from './internal';
 import type {
   NormalizedSCVCompoundVariant,
@@ -34,7 +35,7 @@ function createSlotClassParts(map: Partial<Record<string, RecipeClassValue>> | u
   const slots: Record<string, readonly string[]> = {};
 
   for (const [slotName, classValue] of Object.entries(map ?? {})) {
-    const className = toClassString(classValue);
+    const className = cn(classValue);
 
     if (!className) {
       continue;
@@ -176,7 +177,7 @@ function buildMergeParts<SlotKeys extends string>(
 
       const current = output[slotName] ?? [];
 
-      current.push(...toClassParts(value));
+      current.push(cn(value));
 
       output[slotName] = current;
     }
@@ -299,7 +300,7 @@ export function scv<
       const baseParts = raw.localUnique[slotName] ?? [];
       const slotParts = mergeParts ? [...baseParts, ...(mergeParts[slotName] ?? [])] : baseParts;
 
-      return [slotName, mergeParts ? mergeTailwindClasses(slotParts) : joinClassParts(slotParts)];
+      return [slotName, mergeParts ? merge(slotParts) : cn(slotParts)];
     });
 
     return Object.fromEntries(outputEntries) as Record<SCVOutputSlotKeys<SlotKeys, Extends>, string>;
