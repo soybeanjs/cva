@@ -14,6 +14,7 @@ export interface NormalizedCVCompoundVariant {
 export interface CVRuntimeMeta {
   config: CVConfig<CVVariantsSchema, readonly CVExtendEntry[]>;
   defaultVariants: Readonly<Record<string, string>>;
+  runtimeDefaultVariants: Readonly<Record<string, unknown>>;
   kind: 'cv';
   resolveRaw: (props?: Record<string, unknown>) => string[];
 }
@@ -54,6 +55,7 @@ export type PreparedExtend = PreparedCVExtend | PreparedSCVExtend;
 export interface SCVRuntimeMeta {
   config: SCVConfig<string, readonly AnySCVResult[], Record<string, Record<string, SlotClassMap<string>>>>;
   defaultVariants: Readonly<Record<string, string>>;
+  runtimeDefaultVariants: Readonly<Record<string, unknown>>;
   kind: 'scv';
   preparedExtends: readonly PreparedExtend[];
   resolveRaw: (props?: Record<string, unknown>) => RawSlotsResult;

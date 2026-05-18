@@ -12,7 +12,9 @@ import {
   matchesConditions,
   normalizeConditions,
   normalizeDefaultVariants,
+  normalizeRuntimeDefaultVariants,
   normalizeVariantSchema,
+  resolveRuntimeProps,
   resolveSelections
 } from './shared';
 import { createEmptyRawSlots, mergeConfig, mergeInheritedRaw, pushClassParts } from './merge-config';
@@ -73,6 +75,27 @@ function mergeDefaultVariants(
   }
 
   for (const [key, value] of Object.entries(normalizeDefaultVariants(localDefaults))) {
+    merged[key] = value;
+  }
+
+  return merged;
+}
+
+function mergeRuntimeDefaultVariants(
+  preparedExtends: readonly PreparedExtend[],
+  localDefaults: Record<string, unknown> | undefined
+): Readonly<Record<string, unknown>> {
+  const merged: Record<string, unknown> = {};
+
+  for (const source of preparedExtends) {
+    const sourceDefaults = source.meta.runtimeDefaultVariants;
+
+    for (const [key, value] of Object.entries(sourceDefaults)) {
+      merged[key] = value;
+    }
+  }
+
+  for (const [key, value] of Object.entries(normalizeRuntimeDefaultVariants(localDefaults))) {
     merged[key] = value;
   }
 
@@ -197,21 +220,19 @@ export function scv<
   );
   const resolvedExtends = normalizeExtends(extendEntries);
   const defaultVariants = mergeDefaultVariants(resolvedExtends, config.defaultVariants);
+  const runtimeDefaultVariants = mergeRuntimeDefaultVariants(resolvedExtends, config.defaultVariants);
 
   const meta: SCVRuntimeMeta = {
     // @ts-expect-error ignore config type
     config,
     defaultVariants,
+    runtimeDefaultVariants,
     kind: 'scv',
     preparedExtends: resolvedExtends,
     resolveRaw: (props?: Record<string, unknown>) => {
       const output = createEmptyRawSlots(slotOrder, slotPlan);
       const selections = resolveSelections(props, defaultVariants);
-
-      const resolvedProps = {
-        ...props,
-        ...selections
-      };
+      const resolvedProps = resolveRuntimeProps(props, runtimeDefaultVariants, selections);
 
       for (const source of resolvedExtends) {
         if (source.kind === 'scv') {
@@ -255,6 +276,11 @@ export function scv<
         const inheritedParts = extendIgnore.has(slotName) ? [] : [...(output.inheritedShared[slotName] ?? [])];
         const localParts = [...(output.localShared[slotName] ?? [])];
         output.localUnique[slotName] = [...inheritedParts, ...localParts];
+
+        if (extendIgnore.has(slotName)) {
+          delete output.inheritedShared[slotName];
+          delete output.inheritedUnique[slotName];
+        }
       }
 
       return output;

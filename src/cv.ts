@@ -5,7 +5,9 @@ import {
   matchesConditions,
   normalizeConditions,
   normalizeDefaultVariants,
+  normalizeRuntimeDefaultVariants,
   normalizeVariantSchema,
+  resolveRuntimeProps,
   resolveSelections
 } from './shared';
 import type {
@@ -31,6 +33,25 @@ function mergeDefaultVariants(
   }
 
   for (const [key, value] of Object.entries(normalizeDefaultVariants(localDefaults))) {
+    merged[key] = value;
+  }
+
+  return merged;
+}
+
+function mergeRuntimeDefaultVariants(
+  preparedExtends: readonly CVRuntimeMeta[],
+  localDefaults: Record<string, unknown> | undefined
+): Readonly<Record<string, unknown>> {
+  const merged: Record<string, unknown> = {};
+
+  for (const source of preparedExtends) {
+    for (const [key, value] of Object.entries(source.runtimeDefaultVariants)) {
+      merged[key] = value;
+    }
+  }
+
+  for (const [key, value] of Object.entries(normalizeRuntimeDefaultVariants(localDefaults))) {
     merged[key] = value;
   }
 
@@ -68,6 +89,10 @@ export function cv<
     preparedExtends,
     config.defaultVariants as Record<string, unknown> | undefined
   );
+  const runtimeDefaultVariants = mergeRuntimeDefaultVariants(
+    preparedExtends,
+    config.defaultVariants as Record<string, unknown> | undefined
+  );
   const normalizedVariants = normalizeVariantSchema(config.variants as Variants | undefined, classValue =>
     toClassString(classValue as RecipeClassValue | undefined)
   ) as Record<string, Record<string, string>>;
@@ -79,13 +104,11 @@ export function cv<
   const meta: CVRuntimeMeta = {
     config: config as CVConfig<CVVariantsSchema, readonly CVExtendEntry[]>,
     defaultVariants,
+    runtimeDefaultVariants,
     kind: 'cv',
     resolveRaw: (props?: Record<string, unknown>) => {
       const selections = resolveSelections(props, defaultVariants);
-      const resolvedProps = {
-        ...props,
-        ...selections
-      };
+      const resolvedProps = resolveRuntimeProps(props, runtimeDefaultVariants, selections);
       const output: string[] = [];
 
       for (const source of preparedExtends) {

@@ -134,6 +134,29 @@ describe('cv', () => {
     expect(button({ size: 'lg', tone: 'secondary' })).toBe('ring-0 px-4 rounded-md text-lg bg-slate-200');
   });
 
+  it('preserves boolean runtime props for extendBase and defaults wrappers', () => {
+    const button = cv({
+      extendBase: props => (props.disabled ? 'is-disabled' : 'is-enabled'),
+      defaultVariants: {
+        disabled: false
+      },
+      variants: {
+        disabled: {
+          false: 'opacity-100',
+          true: 'opacity-50'
+        }
+      }
+    });
+
+    const disabledButton = defaults(button, {
+      disabled: true
+    });
+
+    expect(button()).toBe('is-enabled opacity-100');
+    expect(button({ disabled: true })).toBe('is-disabled opacity-50');
+    expect(disabledButton()).toBe('is-disabled opacity-50');
+  });
+
   it('supports cv extension with inherited VariantProps and defaults', () => {
     const surface = cv({
       base: 'rounded-md',
@@ -424,6 +447,38 @@ describe('scv', () => {
     });
   });
 
+  it('preserves boolean runtime props for scv extendBase', () => {
+    const card = scv({
+      extendBase: props => ({
+        root: props.collapsible ? 'is-collapsible' : 'is-static'
+      }),
+      defaultVariants: {
+        collapsible: false
+      },
+      slots: {
+        root: 'rounded-lg'
+      },
+      variants: {
+        collapsible: {
+          false: {
+            root: 'opacity-100'
+          },
+          true: {
+            root: 'opacity-50'
+          }
+        }
+      }
+    });
+
+    expect(card()).toEqual({
+      root: 'is-static rounded-lg opacity-100'
+    });
+
+    expect(card({ collapsible: true })).toEqual({
+      root: 'is-collapsible rounded-lg opacity-50'
+    });
+  });
+
   it('applies scv merges after all variants and resolves conflicts per slot', () => {
     const card = scv({
       slots: {
@@ -657,20 +712,55 @@ describe('scv', () => {
     });
 
     const card = scv({
+      extend: [base],
+      extendIgnore: ['body'],
       slots: {
         body: 'm-2',
         root: 'shadow-sm'
       },
       defaultVariants: {
         tone: 'primary'
-      },
-      extend: [base],
-      extendIgnore: ['body']
+      }
     });
 
     expect(card()).toEqual({
       body: 'm-2',
       root: 'rounded-md bg-slate-900 ring-1 shadow-sm'
+    });
+  });
+
+  it('does not leak ignored inherited slot class names through further extensions', () => {
+    const base = scv({
+      slots: {
+        popup: 'base-popup',
+        root: 'base-root'
+      }
+    });
+
+    const drawer = scv({
+      extend: [base],
+      extendIgnore: ['popup'],
+      slots: {
+        popup: 'drawer-popup',
+        root: 'drawer-root'
+      }
+    });
+
+    const bottomSheet = scv({
+      extend: [drawer],
+      slots: {
+        popup: 'sheet-popup'
+      }
+    });
+
+    expect(drawer()).toEqual({
+      popup: 'drawer-popup',
+      root: 'base-root drawer-root'
+    });
+
+    expect(bottomSheet()).toEqual({
+      popup: 'drawer-popup sheet-popup',
+      root: 'base-root drawer-root'
     });
   });
 

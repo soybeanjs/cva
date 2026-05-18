@@ -44,6 +44,22 @@ export function normalizeDefaultVariants(
   return normalized;
 }
 
+export function normalizeRuntimeDefaultVariants(
+  defaultVariants: Record<string, unknown> | undefined
+): Readonly<Record<string, unknown>> {
+  const normalized: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(defaultVariants ?? {})) {
+    const normalizedValue = normalizeVariantValue(value);
+
+    if (normalizedValue !== undefined) {
+      normalized[key] = value;
+    }
+  }
+
+  return normalized;
+}
+
 export function normalizeConditions<Entry extends Record<string, unknown>>(entry: Entry): NormalizedCompoundCondition {
   const conditions: Record<string, readonly string[]> = {};
 
@@ -83,6 +99,28 @@ export function resolveSelections(
   }
 
   return selections;
+}
+
+export function resolveRuntimeProps(
+  props: Record<string, unknown> | undefined,
+  defaultVariants: Readonly<Record<string, unknown>>,
+  selections: Readonly<Record<string, string>>
+): Readonly<Record<string, unknown>> {
+  const resolvedProps: Record<string, unknown> = { ...defaultVariants };
+
+  for (const [key, value] of Object.entries(props ?? {})) {
+    if (value !== undefined && value !== null) {
+      resolvedProps[key] = value;
+    }
+  }
+
+  for (const [key, value] of Object.entries(selections)) {
+    if (!(key in resolvedProps)) {
+      resolvedProps[key] = value;
+    }
+  }
+
+  return resolvedProps;
 }
 
 export function matchesConditions(

@@ -1,6 +1,6 @@
 import { attachRecipeMeta, getCVMeta, getSCVMeta, getCurrentRecipeProps } from './internal';
 import type { CVRuntimeMeta, SCVRuntimeMeta } from './internal';
-import { normalizeDefaultVariants } from './shared';
+import { normalizeDefaultVariants, normalizeRuntimeDefaultVariants } from './shared';
 import type { ClassValue, CVResult, CVVariantsSchema, SCVResult, VariantSchemaBase } from './types';
 
 function mergeProps(
@@ -28,24 +28,39 @@ function mergeDefaultVariants(
   };
 }
 
+function mergeRuntimeDefaultVariants(
+  currentDefaults: Readonly<Record<string, unknown>>,
+  nextDefaults: Record<string, unknown> | undefined
+): Readonly<Record<string, unknown>> {
+  return {
+    ...currentDefaults,
+    ...normalizeRuntimeDefaultVariants(nextDefaults)
+  };
+}
+
 function wrapCVDefaults<Variants extends CVVariantsSchema, Props extends Record<string, unknown>>(
   recipe: CVResult<Variants, Props>,
   meta: CVRuntimeMeta,
   defaultVariants: Partial<Props>
 ): CVResult<Variants, Props> {
   const nextDefaults = mergeDefaultVariants(meta.defaultVariants, defaultVariants);
+  const nextRuntimeDefaults = mergeRuntimeDefaultVariants(meta.runtimeDefaultVariants, defaultVariants);
   const wrappedMeta: CVRuntimeMeta = {
     ...meta,
     config: {
       ...meta.config,
-      defaultVariants: nextDefaults
+      defaultVariants: nextRuntimeDefaults
     },
     defaultVariants: nextDefaults,
-    resolveRaw: (props?: Record<string, unknown>) => meta.resolveRaw(mergeProps(nextDefaults, props))
+    runtimeDefaultVariants: nextRuntimeDefaults,
+    resolveRaw: (props?: Record<string, unknown>) => meta.resolveRaw(mergeProps(nextRuntimeDefaults, props))
   };
   const wrappedRecipe: CVResult<Variants, Props> = (props?: Props, ...merges: ClassValue[]) =>
     recipe(
-      mergeProps(nextDefaults, (props as Record<string, unknown> | undefined) ?? getCurrentRecipeProps()) as Props,
+      mergeProps(
+        nextRuntimeDefaults,
+        (props as Record<string, unknown> | undefined) ?? getCurrentRecipeProps()
+      ) as Props,
       ...merges
     );
 
@@ -62,21 +77,26 @@ function wrapSCVDefaults<
   defaultVariants: Partial<Props>
 ): SCVResult<SlotKeys, Variants, Props> {
   const nextDefaults = mergeDefaultVariants(meta.defaultVariants, defaultVariants);
+  const nextRuntimeDefaults = mergeRuntimeDefaultVariants(meta.runtimeDefaultVariants, defaultVariants);
   const wrappedMeta: SCVRuntimeMeta = {
     ...meta,
     config: {
       ...meta.config,
-      defaultVariants: nextDefaults
+      defaultVariants: nextRuntimeDefaults
     },
     defaultVariants: nextDefaults,
-    resolveRaw: (props?: Record<string, unknown>) => meta.resolveRaw(mergeProps(nextDefaults, props))
+    runtimeDefaultVariants: nextRuntimeDefaults,
+    resolveRaw: (props?: Record<string, unknown>) => meta.resolveRaw(mergeProps(nextRuntimeDefaults, props))
   };
   const wrappedRecipe: SCVResult<SlotKeys, Variants, Props> = (
     props?: Props,
     ...merges: (Partial<Record<SlotKeys, ClassValue>> | undefined)[]
   ) =>
     recipe(
-      mergeProps(nextDefaults, (props as Record<string, unknown> | undefined) ?? getCurrentRecipeProps()) as Props,
+      mergeProps(
+        nextRuntimeDefaults,
+        (props as Record<string, unknown> | undefined) ?? getCurrentRecipeProps()
+      ) as Props,
       ...merges
     );
 
