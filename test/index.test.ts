@@ -110,6 +110,63 @@ describe('cv', () => {
 
     expect(button({ size: 'lg' }, ['mt-1', 'shadow-lg'], 'mt-4')).toBe('inline-flex px-2 text-lg shadow-lg mt-4');
   });
+
+  it('supports cv extension with inherited VariantProps and defaults', () => {
+    const surface = cv({
+      base: 'rounded-md',
+      defaultVariants: {
+        size: 'sm'
+      },
+      variants: {
+        size: {
+          lg: 'text-lg',
+          sm: 'text-sm'
+        },
+        tone: {
+          primary: 'bg-blue-500',
+          secondary: 'bg-slate-200'
+        }
+      }
+    });
+
+    const button = cv({
+      base: 'font-medium',
+      compoundVariants: [
+        {
+          class: 'uppercase',
+          intent: 'solid',
+          size: 'sm'
+        }
+      ],
+      defaultVariants: {
+        tone: 'primary'
+      },
+      extend: [surface],
+      variants: {
+        intent: {
+          solid: 'shadow-sm'
+        }
+      }
+    });
+
+    type ButtonProps = VariantProps<typeof button>;
+    const buttonPropsAssertion: Assert<
+      IsEqual<
+        ButtonProps,
+        {
+          intent?: 'solid';
+          size?: 'lg' | 'sm';
+          tone?: 'primary' | 'secondary';
+        }
+      >
+    > = true;
+
+    expect(button({ intent: 'solid' })).toBe('rounded-md text-sm bg-blue-500 font-medium shadow-sm uppercase');
+    expect(button({ intent: 'solid', size: 'lg', tone: 'secondary' })).toBe(
+      'rounded-md text-lg bg-slate-200 font-medium shadow-sm'
+    );
+    expect(buttonPropsAssertion).toBe(true);
+  });
 });
 
 describe('scv', () => {

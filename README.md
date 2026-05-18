@@ -82,6 +82,38 @@ button({ size: 'lg' }, 'mt-4', ['shadow-lg', 'ring-1']);
 
 Overrides are applied after all base, variant, and compound classes.
 
+### `cv` extension
+
+`cv` can extend other `cv` recipes directly.
+
+```ts
+import { cv } from '@soybeanjs/cva';
+
+const surface = cv({
+  variants: {
+    size: {
+      sm: 'text-sm',
+      lg: 'text-lg'
+    },
+    tone: {
+      primary: 'bg-blue-600 text-white',
+      secondary: 'bg-slate-100 text-slate-900'
+    }
+  }
+});
+
+const button = cv({
+  extend: [surface],
+  variants: {
+    intent: {
+      solid: 'shadow-sm'
+    }
+  }
+});
+```
+
+Inherited variant props are part of the child recipe type, and child `defaultVariants` / `compoundVariants` can also target inherited variants.
+
 ## `scv`
 
 Use `scv` when each slot needs its own final class string.
@@ -191,7 +223,7 @@ const panel = scv({
 });
 ```
 
-Direct `cv` extension is intentionally not allowed:
+Direct `cv` extension is still not allowed in `scv`:
 
 ```ts
 // not supported

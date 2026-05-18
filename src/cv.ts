@@ -1,5 +1,5 @@
 import { joinClassParts, mergeTailwindClasses, toClassString } from './class-value';
-import { attachRecipeMeta } from './internal';
+import { attachRecipeMeta, getCVMeta } from './internal';
 import type { CVRuntimeMeta, NormalizedCVCompoundVariant } from './internal';
 import {
   matchesConditions,
@@ -8,12 +8,62 @@ import {
   normalizeVariantSchema,
   resolveSelections
 } from './shared';
-import type { CVConfig, CVProps, CVResult, CVVariantsSchema } from './types';
+import type { CVConfig, CVExtendEntry, CVResolvedProps, CVResult, CVVariantsSchema } from './types';
 
-export function cv<Variants extends CVVariantsSchema>(config: CVConfig<Variants>): CVResult<Variants> {
+function mergeDefaultVariants(
+  preparedExtends: readonly CVRuntimeMeta[],
+  localDefaults: Record<string, unknown> | undefined
+): Readonly<Record<string, string>> {
+  const merged: Record<string, string> = {};
+
+  for (const source of preparedExtends) {
+    for (const [key, value] of Object.entries(source.defaultVariants)) {
+      merged[key] = value;
+    }
+  }
+
+  for (const [key, value] of Object.entries(normalizeDefaultVariants(localDefaults))) {
+    merged[key] = value;
+  }
+
+  return merged;
+}
+
+function normalizeExtends(extendEntries: readonly CVExtendEntry[] | undefined): readonly CVRuntimeMeta[] {
+  const prepared: CVRuntimeMeta[] = [];
+
+  for (const entry of extendEntries ?? []) {
+    const meta = getCVMeta(entry);
+
+    if (!meta) {
+      throw new TypeError('cv.extend only accepts cv results.');
+    }
+
+    prepared.push(meta);
+  }
+
+  return prepared;
+}
+
+export function cv<Variants extends CVVariantsSchema>(
+  config: Omit<CVConfig<Variants, readonly []>, 'extend'> & { extend?: undefined }
+): CVResult<Variants, CVResolvedProps<Variants, readonly []>>;
+
+export function cv<Variants extends CVVariantsSchema, Extends extends readonly CVExtendEntry[]>(
+  config: Omit<CVConfig<Variants, Extends>, 'extend'> & { extend: Extends }
+): CVResult<Variants, CVResolvedProps<Variants, Extends>>;
+
+export function cv<Variants extends CVVariantsSchema, Extends extends readonly unknown[] = readonly []>(
+  config: CVConfig<Variants, Extends>
+): CVResult<Variants, CVResolvedProps<Variants, Extends>> {
+  const extendEntries = config.extend as readonly CVExtendEntry[] | undefined;
+  const preparedExtends = normalizeExtends(extendEntries);
   const baseClassName = toClassString(config.base);
 
-  const defaultVariants = normalizeDefaultVariants(config.defaultVariants as Record<string, unknown> | undefined);
+  const defaultVariants = mergeDefaultVariants(
+    preparedExtends,
+    config.defaultVariants as Record<string, unknown> | undefined
+  );
   const normalizedVariants = normalizeVariantSchema(config.variants, classValue => toClassString(classValue)) as Record<
     string,
     Record<string, string>
@@ -24,12 +74,20 @@ export function cv<Variants extends CVVariantsSchema>(config: CVConfig<Variants>
   }));
 
   const meta: CVRuntimeMeta = {
-    config: config as CVConfig<CVVariantsSchema>,
+    config: config as CVConfig<CVVariantsSchema, readonly CVExtendEntry[]>,
     defaultVariants,
     kind: 'cv',
     resolveRaw: (props?: Record<string, unknown>) => {
       const selections = resolveSelections(props, defaultVariants);
-      const output = baseClassName ? [baseClassName] : [];
+      const output: string[] = [];
+
+      for (const source of preparedExtends) {
+        output.push(...source.resolveRaw(selections));
+      }
+
+      if (baseClassName) {
+        output.push(baseClassName);
+      }
 
       for (const [variantName, values] of Object.entries(normalizedVariants)) {
         const selectedValue = selections[variantName];
@@ -55,7 +113,7 @@ export function cv<Variants extends CVVariantsSchema>(config: CVConfig<Variants>
     }
   };
 
-  const recipe: CVResult<Variants> = (props?: CVProps<Variants>, ...merges) => {
+  const recipe: CVResult<Variants, CVResolvedProps<Variants, Extends>> = (props, ...merges) => {
     const output = meta.resolveRaw(props as Record<string, unknown> | undefined);
 
     if (merges.length === 0) {

@@ -5,7 +5,9 @@ export { scv } from './scv';
 export type {
   ClassValue,
   CVConfig,
+  CVExtendEntry,
   CVProps,
+  CVResolvedProps,
   CVResult,
   CVVariantsSchema,
   RecipeClassValue,

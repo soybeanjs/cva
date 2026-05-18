@@ -32,24 +32,51 @@ export type CompoundVariantSelection<Variants extends VariantSchemaBase> = {
 
 export type CVVariantsSchema = Record<string, Record<string, RecipeClassValue>>;
 
-export type CVCompoundVariant<Variants extends CVVariantsSchema = CVVariantsSchema> =
-  CompoundVariantSelection<Variants> & {
-    class?: RecipeClassValue;
-    className?: RecipeClassValue;
-  };
+type UnknownExtends = readonly unknown[];
 
-export interface CVConfig<Variants extends CVVariantsSchema = CVVariantsSchema> {
+type ExtractCVVariantSelection<Source> = Source extends CVResult<infer _Variants, infer Props> ? Props : {};
+
+type MergeSelections<Selections> = Simplify<MergeObjectUnion<Selections>>;
+
+type CVSelectionSet<Variants extends VariantSchemaBase, Extends extends UnknownExtends> = MergeSelections<
+  VariantSelection<Variants> | ExtractCVVariantSelection<Extends[number]>
+>;
+
+export type CVCompoundVariant<
+  Variants extends CVVariantsSchema = CVVariantsSchema,
+  Selections extends Record<string, unknown> = VariantSelection<Variants>
+> = {
+  [Key in keyof Selections]?: Exclude<Selections[Key], undefined> | readonly Exclude<Selections[Key], undefined>[];
+} & {
+  class?: RecipeClassValue;
+  className?: RecipeClassValue;
+};
+
+export interface CVResult<
+  Variants extends CVVariantsSchema = CVVariantsSchema,
+  Props extends Record<string, unknown> = CVProps<Variants>
+> {
+  (props?: Props, ...merges: ClassValue[]): string;
+}
+
+export type CVExtendEntry = CVResult<CVVariantsSchema, Record<string, unknown>>;
+
+export interface CVConfig<
+  Variants extends CVVariantsSchema = CVVariantsSchema,
+  Extends extends UnknownExtends = readonly []
+> {
   base?: RecipeClassValue;
-  compoundVariants?: readonly CVCompoundVariant<Variants>[];
-  defaultVariants?: Partial<VariantSelection<Variants>>;
+  compoundVariants?: readonly CVCompoundVariant<Variants, CVSelectionSet<Variants, Extends>>[];
+  defaultVariants?: Partial<CVSelectionSet<Variants, Extends>>;
+  extend?: Extends;
   variants?: Variants;
 }
 
 export type CVProps<Variants extends CVVariantsSchema = CVVariantsSchema> = Simplify<VariantSelection<Variants>>;
 
-export interface CVResult<Variants extends CVVariantsSchema = CVVariantsSchema> {
-  (props?: CVProps<Variants>, ...merges: ClassValue[]): string;
-}
+export type CVResolvedProps<Variants extends VariantSchemaBase, Extends extends UnknownExtends> = Simplify<
+  CVSelectionSet<Variants, Extends>
+>;
 
 export type VariantProps<Component extends (...args: any[]) => unknown> = Simplify<
   Exclude<Parameters<Component>[0], undefined>
@@ -85,8 +112,8 @@ type ExtractVariantSelection<Source> =
   Source extends SCVResult<string, VariantSchemaBase, infer Props>
     ? Props
     : Source extends object
-      ? NonNullable<Source[keyof Source]> extends CVResult<infer Variants>
-        ? VariantSelection<Variants>
+      ? NonNullable<Source[keyof Source]> extends CVResult<infer _Variants, infer Props>
+        ? Props
         : {}
       : {};
 
@@ -99,8 +126,6 @@ type ExtractSlotKeys<Source> =
         : never
       : never;
 
-type MergeSelections<Selections> = Simplify<MergeObjectUnion<Selections>>;
-
 export type RemappedSlotKeys<
   SlotKeys extends string,
   Mapping extends SlotAliasMapping<SlotKeys>
@@ -109,8 +134,6 @@ export type RemappedSlotKeys<
 export type SCVOutputSlotKeys<SlotKeys extends string, Extends extends readonly SCVExtendEntry<SlotKeys>[]> =
   | SlotKeys
   | ExtractSlotKeys<Extends[number]>;
-
-type UnknownExtends = readonly unknown[];
 
 export type SCVOutputSlotKeysLoose<SlotKeys extends string, Extends extends UnknownExtends> =
   | SlotKeys

@@ -1,4 +1,4 @@
-import type { CVConfig, CVVariantsSchema, SCVConfig, SCVExtendEntry, SlotClassMap } from './types';
+import type { CVConfig, CVExtendEntry, CVVariantsSchema, SCVConfig, SCVExtendEntry, SlotClassMap } from './types';
 
 export const recipeMetadata = Symbol.for('@soybeanjs/cva.metadata');
 
@@ -12,7 +12,7 @@ export interface NormalizedCVCompoundVariant {
 }
 
 export interface CVRuntimeMeta {
-  config: CVConfig<CVVariantsSchema>;
+  config: CVConfig<CVVariantsSchema, readonly CVExtendEntry[]>;
   defaultVariants: Readonly<Record<string, string>>;
   kind: 'cv';
   resolveRaw: (props?: Record<string, unknown>) => string[];
