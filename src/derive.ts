@@ -1,4 +1,4 @@
-import { attachRecipeMeta, getCVMeta, getSCVMeta } from './internal';
+import { attachRecipeMeta, getCVMeta, getSCVMeta, getCurrentRecipeProps } from './internal';
 import type { CVRuntimeMeta, SCVRuntimeMeta } from './internal';
 import type { ClassValue, CVResult, CVVariantsSchema, SCVResult, VariantSchemaBase } from './types';
 
@@ -38,7 +38,13 @@ function wrapCVDerive<Variants extends CVVariantsSchema, Props extends Record<st
     resolveRaw: (props?: Record<string, unknown>) => meta.resolveRaw(resolveDerivedProps(deriveProps, props))
   };
   const wrappedRecipe: CVResult<Variants, Props> = (props?: Props, ...merges: ClassValue[]) =>
-    recipe(resolveDerivedProps(deriveProps, props as Record<string, unknown> | undefined) as Props, ...merges);
+    recipe(
+      resolveDerivedProps(
+        deriveProps,
+        (props as Record<string, unknown> | undefined) ?? getCurrentRecipeProps()
+      ) as Props,
+      ...merges
+    );
 
   return attachRecipeMeta(wrappedRecipe, wrappedMeta);
 }
@@ -59,7 +65,14 @@ function wrapSCVDerive<
   const wrappedRecipe: SCVResult<SlotKeys, Variants, Props> = (
     props?: Props,
     ...merges: (Partial<Record<SlotKeys, ClassValue>> | undefined)[]
-  ) => recipe(resolveDerivedProps(deriveProps, props as Record<string, unknown> | undefined) as Props, ...merges);
+  ) =>
+    recipe(
+      resolveDerivedProps(
+        deriveProps,
+        (props as Record<string, unknown> | undefined) ?? getCurrentRecipeProps()
+      ) as Props,
+      ...merges
+    );
 
   return attachRecipeMeta(wrappedRecipe, wrappedMeta);
 }

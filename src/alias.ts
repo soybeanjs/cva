@@ -1,6 +1,16 @@
 import { attachRecipeMeta, getSCVMeta } from './internal';
 import type { RawSlotsResult, SCVRuntimeMeta, SlotBlueprint } from './internal';
-import type { ClassValue, RemappedSlotKeys, SCVResult, SlotAliasMapping, VariantSchemaBase } from './types';
+import type {
+  ClassValue,
+  RemappedSlotKeys,
+  RemappedSCVVariantsSchema,
+  AnySCVResult,
+  SCVResult,
+  ExtractSlotKeys,
+  ExtractVariantSchema,
+  VariantProps,
+  SlotAliasMapping
+} from './types';
 
 function remapSlotName(slotName: string, mapping: Readonly<Record<string, string>>): string {
   return mapping[slotName] ?? slotName;
@@ -119,15 +129,15 @@ function remapMergeEntry(
   return remapped;
 }
 
-export function alias<
-  SlotKeys extends string,
-  Variants extends VariantSchemaBase,
-  Props extends Record<string, unknown>,
-  Mapping extends SlotAliasMapping<SlotKeys>
->(
-  recipe: SCVResult<SlotKeys, Variants, Props>,
+export function alias<Recipe extends AnySCVResult, Mapping extends SlotAliasMapping<ExtractSlotKeys<Recipe>>>(
+  recipe: Recipe,
   mapping: Mapping
-): SCVResult<RemappedSlotKeys<SlotKeys, Mapping>, Variants, Props> {
+): AnySCVResult &
+  SCVResult<
+    RemappedSlotKeys<ExtractSlotKeys<Recipe>, Mapping>,
+    RemappedSCVVariantsSchema<ExtractVariantSchema<Recipe>, Mapping>,
+    VariantProps<Recipe>
+  > {
   const meta = getSCVMeta(recipe);
 
   if (!meta) {
@@ -145,13 +155,18 @@ export function alias<
     slotOrder: remappedConfig.slotOrder,
     slotPlan: remappedConfig.slotPlan
   };
-  const wrappedRecipe: SCVResult<RemappedSlotKeys<SlotKeys, Mapping>, Variants, Props> = (props?: Props, ...merges) => {
-    const sourceMerges = (merges.filter(Boolean) as Partial<Record<SlotKeys, ClassValue>>[]).map(mergeEntry =>
-      remapMergeEntry(mergeEntry, reverseMapping)
+  const wrappedRecipe: AnySCVResult &
+    SCVResult<
+      RemappedSlotKeys<ExtractSlotKeys<Recipe>, Mapping>,
+      RemappedSCVVariantsSchema<ExtractVariantSchema<Recipe>, Mapping>,
+      VariantProps<Recipe>
+    > = (props?: VariantProps<Recipe>, ...merges) => {
+    const sourceMerges = (merges.filter(Boolean) as Partial<Record<ExtractSlotKeys<Recipe>, ClassValue>>[]).map(
+      mergeEntry => remapMergeEntry(mergeEntry, reverseMapping)
     );
 
     return remapRecipeOutput(recipe(props, ...sourceMerges), normalizedMapping) as Record<
-      RemappedSlotKeys<SlotKeys, Mapping>,
+      RemappedSlotKeys<ExtractSlotKeys<Recipe>, Mapping>,
       string
     >;
   };

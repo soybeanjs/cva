@@ -1,5 +1,5 @@
 import { joinClassParts, mergeTailwindClasses, toClassString } from './class-value';
-import { attachRecipeMeta, getCVMeta } from './internal';
+import { attachRecipeMeta, getCVMeta, getCurrentRecipeProps, withRecipePropsContext } from './internal';
 import type { CVRuntimeMeta, NormalizedCVCompoundVariant } from './internal';
 import {
   matchesConditions,
@@ -8,7 +8,15 @@ import {
   normalizeVariantSchema,
   resolveSelections
 } from './shared';
-import type { CVConfig, CVExtendEntry, CVResolvedProps, CVResult, CVVariantsSchema, RecipeClassValue } from './types';
+import type {
+  CVConfig,
+  CVExtendEntry,
+  CVResolvedProps,
+  AnyCVResult,
+  CVResult,
+  CVVariantsSchema,
+  RecipeClassValue
+} from './types';
 
 function mergeDefaultVariants(
   preparedExtends: readonly CVRuntimeMeta[],
@@ -45,29 +53,16 @@ function normalizeExtends(extendEntries: readonly CVExtendEntry[] | undefined): 
   return prepared;
 }
 
-type InferCVConfigVariants<Config> = Config extends { variants?: infer Variants }
-  ? Variants extends CVVariantsSchema
-    ? Variants
-    : {}
-  : {};
-
-type InferCVConfigExtends<Config> = Config extends { extend?: infer Extends }
-  ? Extends extends readonly CVExtendEntry[]
-    ? Extends
-    : readonly []
-  : readonly [];
-
-type ResolvedCVProps<Config> = CVResolvedProps<InferCVConfigVariants<Config>, InferCVConfigExtends<Config>>;
-
-type ContextualCVConfig<Config> = CVConfig<InferCVConfigVariants<Config>, InferCVConfigExtends<Config>>;
-
-export function cv<Config extends CVConfig<any, any>>(
-  config: Config & ContextualCVConfig<Config>
-): CVResult<InferCVConfigVariants<Config>, ResolvedCVProps<Config>> {
-  type Variants = InferCVConfigVariants<Config>;
+export function cv<
+  Variants extends CVVariantsSchema | undefined = CVVariantsSchema | undefined,
+  Extends extends readonly AnyCVResult[] = readonly []
+>(config: CVConfig<Variants, Extends>) {
   const extendEntries = config.extend as readonly CVExtendEntry[] | undefined;
   const preparedExtends = normalizeExtends(extendEntries);
   const baseClassName = toClassString(config.base);
+  const extendBase = config.extendBase as
+    | ((props?: CVResolvedProps<NoInfer<Variants>, NoInfer<Extends>>) => RecipeClassValue)
+    | undefined;
 
   const defaultVariants = mergeDefaultVariants(
     preparedExtends,
@@ -87,10 +82,22 @@ export function cv<Config extends CVConfig<any, any>>(
     kind: 'cv',
     resolveRaw: (props?: Record<string, unknown>) => {
       const selections = resolveSelections(props, defaultVariants);
+      const resolvedProps = {
+        ...props,
+        ...selections
+      };
       const output: string[] = [];
 
       for (const source of preparedExtends) {
-        output.push(...source.resolveRaw(selections));
+        output.push(...source.resolveRaw(resolvedProps));
+      }
+
+      const extendedBaseClassName = withRecipePropsContext(resolvedProps, () =>
+        toClassString(extendBase?.(resolvedProps as CVResolvedProps<NoInfer<Variants>, NoInfer<Extends>>))
+      );
+
+      if (extendedBaseClassName) {
+        output.push(extendedBaseClassName);
       }
 
       if (baseClassName) {
@@ -121,10 +128,11 @@ export function cv<Config extends CVConfig<any, any>>(
     }
   };
 
-  type ResolvedProps = ResolvedCVProps<Config>;
+  type ResolvedProps = CVResolvedProps<Variants, Extends>;
 
   const recipe: CVResult<Variants, ResolvedProps> = (props, ...merges) => {
-    const output = meta.resolveRaw(props as Record<string, unknown> | undefined);
+    const resolvedProps = (props as Record<string, unknown> | undefined) ?? getCurrentRecipeProps();
+    const output = meta.resolveRaw(resolvedProps);
 
     if (merges.length === 0) {
       return joinClassParts(output);
@@ -143,7 +151,10 @@ export function cv<Config extends CVConfig<any, any>>(
     return mergeTailwindClasses(mergedParts);
   };
 
-  return attachRecipeMeta(recipe, meta);
+  return attachRecipeMeta(recipe, meta) as CVResult<
+    NoInfer<Variants>,
+    CVResolvedProps<NoInfer<Variants>, NoInfer<Extends>>
+  >;
 }
 
 export type { CVConfig, CVProps, CVResult } from './types';

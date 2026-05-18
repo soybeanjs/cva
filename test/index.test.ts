@@ -52,6 +52,20 @@ describe('cv', () => {
   it('supports base, variants, defaultVariants and compoundVariants while ignoring invalid props', () => {
     const button = cv({
       base: 'inline-flex px-2',
+      variants: {
+        disabled: {
+          false: 'opacity-100',
+          true: 'opacity-50'
+        },
+        size: {
+          lg: 'text-lg',
+          sm: 'text-sm'
+        },
+        tone: {
+          danger: 'bg-red-500',
+          primary: 'bg-blue-500'
+        }
+      },
       compoundVariants: [
         {
           class: 'uppercase',
@@ -67,20 +81,6 @@ describe('cv', () => {
       defaultVariants: {
         disabled: false,
         size: 'sm'
-      },
-      variants: {
-        disabled: {
-          false: 'opacity-100',
-          true: 'opacity-50'
-        },
-        size: {
-          lg: 'text-lg',
-          sm: 'text-sm'
-        },
-        tone: {
-          danger: 'bg-red-500',
-          primary: 'bg-blue-500'
-        }
       }
     });
 
@@ -108,6 +108,30 @@ describe('cv', () => {
     });
 
     expect(button({ size: 'lg' }, ['mt-1', 'shadow-lg'], 'mt-4')).toBe('inline-flex px-2 text-lg shadow-lg mt-4');
+  });
+
+  it('resolves extendBase from merged variants before local base classes', () => {
+    const button = cv({
+      base: 'rounded-md',
+      defaultVariants: {
+        size: 'sm',
+        tone: 'primary'
+      },
+      extendBase: props => [props?.tone === 'primary' ? 'ring-1' : 'ring-0', props?.size === 'lg' ? 'px-4' : 'px-2'],
+      variants: {
+        size: {
+          lg: 'text-lg',
+          sm: 'text-sm'
+        },
+        tone: {
+          primary: 'bg-blue-500',
+          secondary: 'bg-slate-200'
+        }
+      }
+    });
+
+    expect(button()).toBe('ring-1 px-2 rounded-md text-sm bg-blue-500');
+    expect(button({ size: 'lg', tone: 'secondary' })).toBe('ring-0 px-4 rounded-md text-lg bg-slate-200');
   });
 
   it('supports cv extension with inherited VariantProps and defaults', () => {
@@ -218,7 +242,9 @@ describe('cv', () => {
     );
 
     const card = scv({
-      extend: [{ close: iconButton }],
+      extendBase: () => ({
+        close: iconButton()
+      }),
       slots: {
         close: '',
         root: 'rounded-lg'
@@ -256,14 +282,16 @@ describe('cv', () => {
     }));
 
     const card = scv({
-      extend: [{ close: iconButton }],
+      extendBase: () => ({
+        close: iconButton()
+      }),
       slots: {
         close: '',
         root: 'rounded-lg'
       }
     });
 
-    expect(iconButton()).toBe('inline-flex w-fit h-fit text-xs');
+    expect(iconButton()).toBe('inline-flex w-fit h-fit text-lg');
     expect(iconButton({ size: 'lg' })).toBe('inline-flex w-fit h-fit text-xs');
     expect(card({ size: 'lg' }).close).toBe('inline-flex w-fit h-fit text-xs');
   });
@@ -293,7 +321,9 @@ describe('cv', () => {
     });
 
     const card = scv({
-      extend: [{ close: iconButton }],
+      extendBase: () => ({
+        close: iconButton()
+      }),
       slots: {
         close: '',
         root: 'rounded-lg'
@@ -309,8 +339,27 @@ describe('cv', () => {
 
 describe('scv', () => {
   it('exposes VariantProps for scv results', () => {
+    const baseCard = scv({
+      slots: {
+        root: 'rounded-md',
+        body: 'p-4'
+      },
+      variants: {
+        size: {
+          lg: {
+            root: 'text-lg',
+            body: 'text-lg'
+          },
+          sm: {
+            root: 'text-sm',
+            body: 'text-sm'
+          }
+        }
+      }
+    });
+
     const card = scv({
-      extend: [{ root: cv({ variants: { size: { lg: 'text-lg', sm: 'text-sm' } } }) }],
+      extend: [baseCard],
       variants: {
         tone: {
           primary: {
@@ -333,7 +382,7 @@ describe('scv', () => {
 
     const validProps: CardProps = { size: 'lg', tone: 'primary' };
 
-    expect(card(validProps).root).toBe('text-lg bg-blue-500');
+    expect(card(validProps).root).toBe('rounded-md text-lg bg-blue-500');
     expect(cardPropsAssertion).toBe(true);
 
     // @ts-expect-error invalid variants are not part of VariantProps
@@ -402,17 +451,9 @@ describe('scv', () => {
   it('supports alias remapping across scv extensions', () => {
     const baseCard = scv({
       slots: {
-        body: 'p-4',
-        root: 'rounded-md'
+        root: 'rounded-md',
+        body: 'p-4'
       },
-      compoundVariants: [
-        {
-          class: {
-            root: 'ring-1'
-          },
-          tone: 'primary'
-        }
-      ],
       variants: {
         tone: {
           primary: {
@@ -420,12 +461,28 @@ describe('scv', () => {
             root: 'bg-slate-900'
           }
         }
-      }
+      },
+      compoundVariants: [
+        {
+          tone: 'primary',
+          class: {
+            root: 'ring-1'
+          }
+        }
+      ]
     });
 
     const sectionCard = scv({
+      extend: [alias(baseCard, { root: 'header' })],
       slots: {
         header: 'font-semibold'
+      },
+      variants: {
+        tone: {
+          primary: {
+            header: 'uppercase'
+          }
+        }
       },
       compoundVariants: [
         {
@@ -434,15 +491,7 @@ describe('scv', () => {
           },
           tone: 'primary'
         }
-      ],
-      extend: [alias(baseCard, { root: 'header' })],
-      variants: {
-        tone: {
-          primary: {
-            header: 'uppercase'
-          }
-        }
-      }
+      ]
     });
 
     expect(sectionCard({ tone: 'primary' })).toEqual({
@@ -479,11 +528,11 @@ describe('scv', () => {
     });
 
     const listB = scv({
+      extend: [alias(listA, { item: 'subItem', root: 'subRoot' })],
       slots: {
         subItem: 'py-2',
         subRoot: 'shadow-sm'
       },
-      extend: [alias(listA, { item: 'subItem', root: 'subRoot' })],
       variants: {
         tone: {
           primary: {
@@ -556,15 +605,18 @@ describe('scv', () => {
     expect(layeredResult.root).toContain('text-white');
 
     const card = scv({
+      extend: [surface, accent],
+      extendBase: () => ({
+        root: button(),
+        footer: button()
+      }),
       slots: {
         footer: 'py-2',
         root: 'px-6'
       },
       defaultVariants: {
-        size: 'lg',
         tone: 'primary'
       },
-      extend: [surface, accent, { root: button }, { footer: button }],
       variants: {
         tone: {
           primary: {
@@ -577,15 +629,15 @@ describe('scv', () => {
     const result = card();
 
     expect(result.body).toBe('text-slate-700');
-    expect(result.footer).toBe('border-t text-emerald-700 rounded-md px-2 text-lg py-2');
+    expect(result.footer).toBe('border-t text-emerald-700 rounded-md px-2 text-sm py-2');
     expect(result.root).toContain('rounded-md');
-    expect(result.root).toContain('text-lg');
+    expect(result.root).toContain('text-sm');
     expect(result.root).toContain('text-white');
     expect(result.root).toContain('bg-blue-500');
     expect(result.root).toContain('px-6');
     expect(result.root).toContain('bg-red-500');
     expect(result.root).toContain('bg-green-500');
-    expect(result.root).not.toContain('text-sm');
+    expect(result.root).not.toContain('text-lg');
   });
 
   it('skips inherited class names for slots listed in extendIgnore', () => {
@@ -637,10 +689,12 @@ describe('scv', () => {
     });
 
     const card = scv({
+      extendBase: () => ({
+        root: button()
+      }),
       defaultVariants: {
         size: 'lg'
-      },
-      extend: [{ root: button }]
+      }
     });
 
     expect(card()).toEqual({

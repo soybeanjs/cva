@@ -7,6 +7,7 @@ High-performance Tailwind CSS variant recipes with split `cv` and `scv` APIs.
 - `alias`: remap inherited slot names without changing variant props
 - `derive`: compute variant props from incoming props at call time
 - `defaults`: preset recipe default variants without rebuilding the recipe
+- `extendBase`: compute dynamic base classes or slots from resolved variant props
 - `VariantProps`: extract the public variant prop type from a recipe
 - runtime overrides use rest arguments instead of `class` / `className` props
 
@@ -116,6 +117,41 @@ const button = cv({
 
 Inherited variant props are part of the child recipe type, and child `defaultVariants` / `compoundVariants` can also target inherited variants.
 
+### `cv.extendBase`
+
+Use `extendBase` when the base classes depend on the fully resolved variant props.
+
+```ts
+import { cv } from '@soybeanjs/cva';
+
+const button = cv({
+  base: 'rounded-md',
+  defaultVariants: {
+    size: 'sm',
+    tone: 'primary'
+  },
+  extendBase: props => [props.tone === 'primary' ? 'ring-1' : 'ring-0', props.size === 'lg' ? 'px-4' : 'px-2'],
+  variants: {
+    size: {
+      sm: 'text-sm',
+      lg: 'text-lg'
+    },
+    tone: {
+      primary: 'bg-blue-500',
+      secondary: 'bg-slate-200'
+    }
+  }
+});
+
+button();
+// "ring-1 px-2 rounded-md text-sm bg-blue-500"
+
+button({ size: 'lg', tone: 'secondary' });
+// "ring-0 px-4 rounded-md text-lg bg-slate-200"
+```
+
+`extendBase` runs after inherited `extend` recipes have resolved, and before the local `base` field is appended.
+
 ## `scv`
 
 Use `scv` when each slot needs its own final class string.
@@ -180,6 +216,53 @@ card({ tone: 'brand' }, { root: ['mt-4', 'shadow-lg'] }, { body: ['leading-6'] }
 ```
 
 Each slot is merged independently.
+
+### `scv.extendBase`
+
+Use `extendBase` when slot base classes depend on the resolved variant props, or when a slot should be filled by another recipe at call time.
+
+```ts
+import { cv, derive, scv } from '@soybeanjs/cva';
+
+const button = cv({
+  base: 'inline-flex',
+  defaultVariants: {
+    fitContent: false,
+    size: 'md'
+  },
+  variants: {
+    fitContent: {
+      false: '',
+      true: 'w-fit h-fit'
+    },
+    size: {
+      sm: 'text-xs',
+      md: 'text-sm',
+      lg: 'text-lg'
+    }
+  }
+});
+
+const iconButton = derive(button, props => ({
+  fitContent: true,
+  size: props.size === 'lg' ? 'sm' : props.size
+}));
+
+const card = scv({
+  extendBase: () => ({
+    close: iconButton()
+  }),
+  slots: {
+    close: '',
+    root: 'rounded-lg'
+  }
+});
+
+card({ size: 'lg' }).close;
+// "inline-flex w-fit h-fit text-xs"
+```
+
+Inside `extendBase`, calling another recipe without explicitly passing props reuses the current resolved props. That keeps nested `derive` and `defaults` wrappers composable inside `extendBase`.
 
 ## Extending recipes
 
@@ -284,6 +367,8 @@ compactButton({ size: 'lg' });
 
 Use this when the next variants depend on the current call's props.
 
+When a derived recipe is invoked inside `extendBase`, the outer recipe's current resolved props are used if you do not pass props explicitly.
+
 ### `defaults`
 
 `defaults` presets a recipe's `defaultVariants` while keeping explicit call-time props higher priority.
@@ -321,6 +406,8 @@ iconButton({ size: 'md' });
 ```
 
 Use this when you want a recipe variant preset, not dynamic remapping.
+
+Like `derive`, a defaulted recipe called inside `extendBase` also inherits the outer recipe's current resolved props when no explicit props are provided.
 
 ## `alias`
 
@@ -409,6 +496,7 @@ Inherited variant props from `extend` are included in the extracted type.
 - `root` has no built-in meaning. It is just a conventional slot name.
 - boolean variants are declared with `'true'` and `'false'` keys and exposed as `boolean` in props.
 - compound variant conditions can use either a single value or an array of values.
+- `extendBase` receives resolved props, which already include inherited and local `defaultVariants` plus the current call's explicit props.
 - unknown props are ignored at runtime.
 - `tailwind-merge` only runs when runtime override arguments are provided. If you do not pass overrides, the recipe returns the prejoined output directly.
 

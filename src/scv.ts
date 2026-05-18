@@ -1,5 +1,5 @@
 import { joinClassParts, mergeTailwindClasses, toClassParts, toClassString } from './class-value';
-import { getCVMeta, getSCVMeta, attachRecipeMeta } from './internal';
+import { getCVMeta, getSCVMeta, attachRecipeMeta, getCurrentRecipeProps, withRecipePropsContext } from './internal';
 import type {
   NormalizedSCVCompoundVariant,
   NormalizedSlotClassParts,
@@ -20,14 +20,12 @@ import type {
   ClassValue,
   RecipeClassValue,
   SCVConfig,
-  SCVExtendEntry,
-  SCVExtendRecord,
-  SCVOutputSlotKeysLoose,
+  AnySCVResult,
   SCVResolvedProps,
   SCVResult,
   SCVVariantsSchema,
   SlotClassMap,
-  VariantSchemaBase
+  SCVOutputSlotKeys
 } from './types';
 
 function createSlotClassParts(map: Partial<Record<string, RecipeClassValue>> | undefined): NormalizedSlotClassParts {
@@ -81,9 +79,7 @@ function mergeDefaultVariants(
   return merged;
 }
 
-function normalizeExtends(
-  extendEntries: readonly (SCVResult<string, VariantSchemaBase> | SCVExtendRecord<string>)[] | undefined
-): readonly PreparedExtend[] {
+function normalizeExtends(extendEntries: readonly AnySCVResult[] | undefined): readonly PreparedExtend[] {
   const prepared: PreparedExtend[] = [];
 
   for (const entry of extendEntries ?? []) {
@@ -112,9 +108,7 @@ function normalizeExtends(
   return prepared;
 }
 
-function collectMappedSlots(
-  extendEntries: readonly (SCVResult<string, VariantSchemaBase> | SCVExtendRecord<string>)[] | undefined
-): string[] {
+function collectMappedSlots(extendEntries: readonly AnySCVResult[] | undefined): string[] {
   const mappedSlots: string[] = [];
 
   for (const entry of extendEntries ?? []) {
@@ -172,51 +166,20 @@ function collectLocalSlotNames<SlotKeys extends string>(slotClasses: SlotClassMa
   return Object.keys(slotClasses ?? {});
 }
 
-type InferSCVVariantSlotKeys<Config> = Config extends { variants?: infer Variants }
-  ? Variants extends Record<string, Record<string, infer SlotMap>>
-    ? keyof SlotMap & string
-    : never
-  : never;
-
-type InferSCVConfigSlotKeys<Config> =
-  | (Config extends { slots?: infer Slots } ? keyof NonNullable<Slots> & string : never)
-  | InferSCVVariantSlotKeys<Config>
-  | (Config extends { extendIgnore?: readonly (infer Keys)[] } ? Keys & string : never);
-
-type InferSCVConfigVariants<Config> = Config extends { variants?: infer Variants }
-  ? Variants extends SCVVariantsSchema<InferSCVConfigSlotKeys<Config>>
-    ? Variants
-    : {}
-  : {};
-
-type InferSCVConfigExtends<Config> = Config extends { extend?: infer Extends }
-  ? Extends extends readonly SCVExtendEntry[]
-    ? Extends
-    : readonly []
-  : readonly [];
-
-type ResolvedSCVSlotKeys<Config> = SCVOutputSlotKeysLoose<
-  InferSCVConfigSlotKeys<Config>,
-  InferSCVConfigExtends<Config>
->;
-
-type ResolvedSCVProps<Config> = SCVResolvedProps<InferSCVConfigVariants<Config>, InferSCVConfigExtends<Config>>;
-
-type ContextualSCVConfig<Config> = SCVConfig<
-  InferSCVConfigSlotKeys<Config>,
-  InferSCVConfigVariants<Config>,
-  InferSCVConfigExtends<Config>
->;
-
-export function scv<Config extends SCVConfig<any, any, any>>(
-  config: Config & ContextualSCVConfig<Config>
-): SCVResult<ResolvedSCVSlotKeys<Config>, InferSCVConfigVariants<Config>, ResolvedSCVProps<Config>> {
-  type SlotKeys = InferSCVConfigSlotKeys<Config>;
-  type Variants = InferSCVConfigVariants<Config>;
-  const extendEntries = config.extend as
-    | readonly (SCVResult<string, VariantSchemaBase> | SCVExtendRecord<string>)[]
-    | undefined;
+export function scv<
+  SlotKeys extends string,
+  Extends extends readonly AnySCVResult[] = readonly [],
+  Variants extends SCVVariantsSchema<SCVOutputSlotKeys<NoInfer<SlotKeys>, NoInfer<Extends>>> | undefined =
+    | SCVVariantsSchema<SCVOutputSlotKeys<NoInfer<SlotKeys>, NoInfer<Extends>>>
+    | undefined
+>(config: SCVConfig<SlotKeys, Extends, Variants>) {
+  const extendEntries = config.extend;
   const localSlotNames = collectLocalSlotNames(config.slots as SlotClassMap<SlotKeys> | undefined);
+  const extendBase = config.extendBase as
+    | ((
+        props?: SCVResolvedProps<NoInfer<Variants>, NoInfer<Extends>>
+      ) => SlotClassMap<SCVOutputSlotKeys<NoInfer<SlotKeys>, NoInfer<Extends>>>)
+    | undefined;
 
   const mappedSlots = collectMappedSlots(extendEntries);
   const preparedExtends = normalizeExtends(extendEntries);
@@ -234,25 +197,21 @@ export function scv<Config extends SCVConfig<any, any, any>>(
   );
   const resolvedExtends = normalizeExtends(extendEntries);
   const defaultVariants = mergeDefaultVariants(resolvedExtends, config.defaultVariants);
-  type ResolvedProps = ResolvedSCVProps<Config>;
 
   const meta: SCVRuntimeMeta = {
-    config: config as SCVConfig<
-      string,
-      Record<string, Record<string, SlotClassMap<string>>>,
-      readonly SCVExtendEntry<string>[]
-    >,
+    // @ts-expect-error ignore config type
+    config,
     defaultVariants,
     kind: 'scv',
     preparedExtends: resolvedExtends,
     resolveRaw: (props?: Record<string, unknown>) => {
       const output = createEmptyRawSlots(slotOrder, slotPlan);
       const selections = resolveSelections(props, defaultVariants);
-      const typedProps = props as ResolvedProps | undefined;
+
       const resolvedProps = {
-        ...typedProps,
+        ...props,
         ...selections
-      } as ResolvedProps;
+      };
 
       for (const source of resolvedExtends) {
         if (source.kind === 'scv') {
@@ -263,6 +222,12 @@ export function scv<Config extends SCVConfig<any, any, any>>(
         const parts = source.meta.resolveRaw(resolvedProps);
         pushClassParts(output.inheritedShared, source.slot, parts);
       }
+
+      const extendedBaseSlots = withRecipePropsContext(resolvedProps, () =>
+        createSlotClassParts(extendBase?.(resolvedProps as SCVResolvedProps<NoInfer<Variants>, NoInfer<Extends>>))
+      );
+
+      applySlotClassParts(output, extendedBaseSlots, 'local');
 
       applySlotClassParts(output, localSlots, 'local');
 
@@ -298,11 +263,11 @@ export function scv<Config extends SCVConfig<any, any, any>>(
     slotPlan
   };
 
-  const recipe: SCVResult<ResolvedSCVSlotKeys<Config>, Variants, ResolvedProps> = (
-    props?: ResolvedProps,
-    ...merges
-  ) => {
-    const raw = meta.resolveRaw(props as Record<string, unknown> | undefined);
+  type ResolvedProps = SCVResolvedProps<Variants, Extends>;
+
+  const recipe: SCVResult<SlotKeys, Variants, ResolvedProps> = (props?: ResolvedProps, ...merges) => {
+    const resolvedProps = (props as Record<string, unknown> | undefined) ?? getCurrentRecipeProps();
+    const raw = meta.resolveRaw(resolvedProps);
     const mergeParts = merges.length === 0 ? undefined : buildMergeParts(merges, raw.slotPlan);
     const outputEntries = raw.slotOrder.map(slotName => {
       const baseParts = raw.localUnique[slotName] ?? [];
@@ -311,10 +276,14 @@ export function scv<Config extends SCVConfig<any, any, any>>(
       return [slotName, mergeParts ? mergeTailwindClasses(slotParts) : joinClassParts(slotParts)];
     });
 
-    return Object.fromEntries(outputEntries) as Record<ResolvedSCVSlotKeys<Config>, string>;
+    return Object.fromEntries(outputEntries) as Record<SCVOutputSlotKeys<SlotKeys, Extends>, string>;
   };
 
-  return attachRecipeMeta(recipe, meta);
+  return attachRecipeMeta(recipe, meta) as SCVResult<
+    SCVOutputSlotKeys<SlotKeys, Extends>,
+    NoInfer<Variants>,
+    SCVResolvedProps<NoInfer<Variants>, NoInfer<Extends>>
+  >;
 }
 
 export type { SCVConfig, SCVProps, SCVResult } from './types';

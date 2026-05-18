@@ -15,8 +15,6 @@ export type {
   RecipeClassValue,
   RemappedSlotKeys,
   SCVConfig,
-  SCVExtendEntry,
-  SCVExtendRecord,
   SCVProps,
   SCVResult,
   SCVVariantsSchema,

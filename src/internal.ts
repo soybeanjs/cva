@@ -1,4 +1,4 @@
-import type { CVConfig, CVExtendEntry, CVVariantsSchema, SCVConfig, SCVExtendEntry, SlotClassMap } from './types';
+import type { CVConfig, CVExtendEntry, CVVariantsSchema, SCVConfig, AnySCVResult, SlotClassMap } from './types';
 
 export const recipeMetadata = Symbol.for('@soybeanjs/cva.metadata');
 
@@ -52,7 +52,7 @@ export interface PreparedSCVExtend {
 export type PreparedExtend = PreparedCVExtend | PreparedSCVExtend;
 
 export interface SCVRuntimeMeta {
-  config: SCVConfig<string, Record<string, Record<string, SlotClassMap<string>>>, readonly SCVExtendEntry<string>[]>;
+  config: SCVConfig<string, readonly AnySCVResult[], Record<string, Record<string, SlotClassMap<string>>>>;
   defaultVariants: Readonly<Record<string, string>>;
   kind: 'scv';
   preparedExtends: readonly PreparedExtend[];
@@ -62,6 +62,8 @@ export interface SCVRuntimeMeta {
 }
 
 type RecipeMeta = CVRuntimeMeta | SCVRuntimeMeta;
+
+const recipePropsStack: (Record<string, unknown> | undefined)[] = [];
 
 export function attachRecipeMeta<Result extends (...args: never[]) => unknown, Meta extends RecipeMeta>(
   recipe: Result,
@@ -75,6 +77,23 @@ export function attachRecipeMeta<Result extends (...args: never[]) => unknown, M
   });
 
   return recipe;
+}
+
+export function getCurrentRecipeProps(): Record<string, unknown> | undefined {
+  return recipePropsStack[recipePropsStack.length - 1];
+}
+
+export function withRecipePropsContext<Result>(
+  props: Record<string, unknown> | undefined,
+  resolve: () => Result
+): Result {
+  recipePropsStack.push(props);
+
+  try {
+    return resolve();
+  } finally {
+    recipePropsStack.pop();
+  }
 }
 
 function readRecipeMeta(candidate: unknown): RecipeMeta | undefined {
