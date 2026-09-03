@@ -2,7 +2,7 @@
 
 ## Project
 
-`@soybeanjs/cva` — a small, performance-focused npm library for Tailwind CSS variant recipes. Two recipe APIs: `cv` (returns one class string) and `scv` (returns a slot-to-class map), plus helpers `alias`, `derive`, `defaults`, `cn`, `merge` and the `VariantProps` type. Runtime overrides are passed as rest arguments, never `class`/`className` props.
+`@soybeanjs/cva` — a small, performance-focused npm library for Tailwind CSS variant recipes. Two recipe APIs: `cv` (returns one class string) and `scv` (returns a slot-to-class map), plus helpers `alias`, `derive`, and `defaults`. The public `cn` and `merge` exports are deprecated aliases of `clsx` and `cn` from the [`cn`](https://github.com/shadcn-ui/cn) package, which supplies class flattening (`clsx`), class merging (`cn`), and the `ClassValue` type. Runtime overrides are passed as rest arguments, never `class`/`className` props.
 
 ## Commands
 
@@ -19,8 +19,8 @@ Releases are done with `soy release` (`@soybeanjs/cli`); CI (`.github/workflows/
 
 ## Layout
 
-- `src/` — flat modules, one feature per file: `cv.ts`, `scv.ts`, `alias.ts`, `derive.ts`, `defaults.ts`, `cn.ts`, `merge.ts`, `merge-config.ts`
-- `src/index.ts` — the only public entry point; every public export (values from feature files, types from `types.ts`) must be re-exported here
+- `src/` — flat modules, one feature per file: `cv.ts`, `scv.ts`, `alias.ts`, `derive.ts`, `defaults.ts`, `merge-config.ts`
+- `src/index.ts` — the only public entry point; every public export (values from feature files, types from `types.ts`) must be re-exported here. `cn`/`merge` are deprecated `const` aliases of the `cn` package's `clsx`/`cn` (kept as consts so the `@deprecated` JSDoc survives d.ts generation)
 - `src/internal.ts` — recipe runtime metadata (`recipeMetadata` symbol attached to every recipe) and the props-context stack (`withRecipePropsContext` / `getCurrentRecipeProps`) that lets recipes called inside `extendBase` inherit the outer recipe's resolved props
 - `src/shared.ts` — normalization helpers; variant values normalize to strings (booleans become `'true'`/`'false'` keys but are exposed as `boolean` props)
 - `src/types.ts` — all public and internal type definitions; types are a first-class feature here (type-level tests live in `test/index.test.ts` with an `IsEqual` helper)
@@ -30,7 +30,7 @@ Releases are done with `soy release` (`@soybeanjs/cli`); CI (`.github/workflows/
 ## Rules and gotchas
 
 - ESM-only package (`"type": "module"`); named exports only, no default exports.
-- Performance is the product: the merge engine (`twMerge` from the `cn` package) runs only when runtime override args are passed, and the no-override path returns prejoined output directly. Preserve this fast path when touching `cv.ts`/`scv.ts`.
+- Performance is the product: the merge engine (the `cn` package's `cn`) runs only when runtime override args are passed, and the no-override path returns prejoined output directly. Preserve this fast path when touching `cv.ts`/`scv.ts`.
 - `test/merge-golden.test.ts` freezes the merge engine's outputs for a 15,660-case corpus extracted from soybean-ui styles (baseline produced by tailwind-merge 3.6.0 before the swap to `cn`). Regenerate with `UPDATE_MERGE_GOLDEN=1 pnpm vitest --run test/merge-golden.test.ts` only when an intentional behavior change is being made.
 - `scv` cannot directly extend a `cv` recipe — only slot-mapped entries (`extend: [{ root: someCvRecipe }]`) or other `scv` recipes. `alias` remaps slot names, and runtime overrides must target the renamed slot.
 - `extendBase` receives fully resolved props (inherited + local defaults + call-time props) and runs after inherited `extend` recipes resolve, before local `base` appends.

@@ -34,6 +34,9 @@
     "typecheck": "tsc --noEmit --skipLibCheck",
     "upkg": "soy ncu"
   },
+  "dependencies": {
+    "cn": "^0.2.4"
+  },
   "devDependencies": {
     "@soybeanjs/cli": "^1.8.2",
     "@soybeanjs/oxc-config": "^0.2.3",
@@ -45,8 +48,5 @@
     "vite-plus": "catalog:",
     "vitest": "^4.1.11"
   },
-  "packageManager": "pnpm@11.25.0",
-  "dependencies": {
-    "cn": "^0.2.4"
-  }
+  "packageManager": "pnpm@11.25.0"
 }

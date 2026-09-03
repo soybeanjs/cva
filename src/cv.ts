@@ -7,10 +7,9 @@ import {
   resolveRuntimeProps,
   resolveSelections
 } from './shared';
-import { cn } from './cn';
+import { clsx, cn as cnMerge } from 'cn';
 import { attachRecipeMeta, getCVMeta, getCurrentRecipeProps, withRecipePropsContext } from './internal';
 import type { CVRuntimeMeta, NormalizedCVCompoundVariant } from './internal';
-import { merge } from './merge';
 import type {
   CVConfig,
   CVExtendEntry,
@@ -81,7 +80,7 @@ export function cv<
 >(config: CVConfig<Variants, Extends>) {
   const extendEntries = config.extend as readonly CVExtendEntry[] | undefined;
   const preparedExtends = normalizeExtends(extendEntries);
-  const baseClassName = cn(config.base);
+  const baseClassName = clsx(config.base);
   const extendBase = config.extendBase as
     | ((props?: CVResolvedProps<NoInfer<Variants>, NoInfer<Extends>>) => RecipeClassValue)
     | undefined;
@@ -95,10 +94,10 @@ export function cv<
     config.defaultVariants as Record<string, unknown> | undefined
   );
   const normalizedVariants = normalizeVariantSchema(config.variants as Variants | undefined, classValue =>
-    cn(classValue as RecipeClassValue | undefined)
+    clsx(classValue as RecipeClassValue | undefined)
   ) as Record<string, Record<string, string>>;
   const compoundVariants: readonly NormalizedCVCompoundVariant[] = (config.compoundVariants ?? []).map(variant => ({
-    className: cn(variant.class ?? variant.className),
+    className: clsx(variant.class ?? variant.className),
     conditions: normalizeConditions(variant as Record<string, unknown>)
   }));
 
@@ -117,7 +116,7 @@ export function cv<
       }
 
       const extendedBaseClassName = withRecipePropsContext(resolvedProps, () =>
-        cn(extendBase?.(resolvedProps as CVResolvedProps<NoInfer<Variants>, NoInfer<Extends>>))
+        clsx(extendBase?.(resolvedProps as CVResolvedProps<NoInfer<Variants>, NoInfer<Extends>>))
       );
 
       if (extendedBaseClassName) {
@@ -159,20 +158,20 @@ export function cv<
     const output = meta.resolveRaw(resolvedProps);
 
     if (merges.length === 0) {
-      return cn(output);
+      return clsx(output);
     }
 
     const mergedParts = [...output];
 
     for (const mergeValue of merges) {
-      const mergeClassName = cn(mergeValue);
+      const mergeClassName = clsx(mergeValue);
 
       if (mergeClassName) {
         mergedParts.push(mergeClassName);
       }
     }
 
-    return merge(mergedParts);
+    return cnMerge(...mergedParts);
   };
 
   return attachRecipeMeta(recipe, meta) as CVResult<

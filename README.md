@@ -8,8 +8,8 @@ High-performance Tailwind CSS variant recipes with split `cv` and `scv` APIs.
 - `derive`: compute variant props from incoming props at call time
 - `defaults`: preset recipe default variants without rebuilding the recipe
 - `extendBase`: compute dynamic base classes or slots from resolved variant props
-- `cn`: flatten `ClassValue` inputs with css-variants style semantics
-- `merge`: merge class parts with `cn` conflict resolution
+- `cn`: deprecated alias of `clsx` from the [`cn`](https://github.com/shadcn-ui/cn) package
+- `merge`: deprecated alias of `cn` from the [`cn`](https://github.com/shadcn-ui/cn) package
 - `VariantProps`: extract the public variant prop type from a recipe
 - runtime overrides use rest arguments instead of `class` / `className` props
 
@@ -20,7 +20,8 @@ pnpm add @soybeanjs/cva
 ```
 
 ```ts
-import { alias, cn, cv, derive, defaults, merge, scv } from '@soybeanjs/cva';
+import { alias, cv, derive, defaults, scv } from '@soybeanjs/cva';
+import { cn, clsx } from 'cn';
 import type { VariantProps } from '@soybeanjs/cva';
 ```
 
@@ -33,31 +34,29 @@ This package keeps the two common recipe shapes separate:
 
 That split keeps the runtime small, keeps the types direct, and avoids overloading a single API with two different output models.
 
-## `cn`
+## `cn` (deprecated)
 
-Use `cn` when you want css-variants style class flattening for plain `ClassValue` inputs.
+`cn` is a deprecated alias of `clsx` from the [`cn`](https://github.com/shadcn-ui/cn) package. Import `clsx` from `cn` directly:
 
 ```ts
-import { cn } from '@soybeanjs/cva';
+import { clsx } from 'cn';
 
-cn('inline-flex', ['items-center', ['justify-center']], { 'font-medium': true, hidden: false });
+clsx('inline-flex', ['items-center', ['justify-center']], { 'font-medium': true, hidden: false });
 // "inline-flex items-center justify-center font-medium"
 ```
 
-`cn` only flattens values. It does not resolve Tailwind conflicts.
+It only flattens values. It does not resolve Tailwind conflicts.
 
-## `merge`
+## `merge` (deprecated)
 
-Use `merge` when you already have an ordered list of class parts and want Tailwind conflict resolution.
+`merge` is a deprecated alias of `cn` from the [`cn`](https://github.com/shadcn-ui/cn) package, which flattens class values and resolves Tailwind conflicts in one pass. Import `cn` from `cn` directly:
 
 ```ts
-import { merge } from '@soybeanjs/cva';
+import { cn } from 'cn';
 
-merge(['px-2 text-sm', 'px-4', 'mt-2']);
+cn('px-2 text-sm', 'px-4', 'mt-2');
 // "text-sm px-4 mt-2"
 ```
-
-`merge` is a thin wrapper around the `twMerge` export of the [`cn`](https://github.com/shadcn-ui/cn) package and is useful when classes are already collected as string parts.
 
 ## `cv`
 
@@ -526,7 +525,7 @@ Inherited variant props from `extend` are included in the extracted type.
 - compound variant conditions can use either a single value or an array of values.
 - `extendBase` receives resolved props, which already include inherited and local `defaultVariants` plus the current call's explicit props.
 - unknown props are ignored at runtime.
-- the merge engine (`cn`'s `twMerge`) only runs when runtime override arguments are provided. If you do not pass overrides, the recipe returns the prejoined output directly.
+- the merge engine (the `cn` package's `cn`) only runs when runtime override arguments are provided. If you do not pass overrides, the recipe returns the prejoined output directly.
 
 ## Development
 

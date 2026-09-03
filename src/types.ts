@@ -1,3 +1,5 @@
+import type { ClassValue } from 'cn';
+
 export type Simplify<Type> = { [Key in keyof Type]: Type[Key] } & {};
 
 type UnionKeys<Union> = Union extends Union ? keyof Union : never;
@@ -5,10 +7,6 @@ type UnionKeys<Union> = Union extends Union ? keyof Union : never;
 type MergeObjectUnion<Union> = {
   [Prop in UnionKeys<Union>]?: Union extends Union ? (Prop extends keyof Union ? Union[Prop] : never) : never;
 };
-
-export type ClassDictionary = Record<string, boolean | null | undefined>;
-
-export type ClassValue = ClassDictionary | ClassValue[] | false | null | number | string | undefined;
 
 export type RecipeClassValue = string | string[];
 
@@ -185,3 +183,5 @@ export interface SCVResult<
 export type VariantProps<Component extends (...args: any[]) => unknown> = Simplify<
   Exclude<Parameters<Component>[0], undefined>
 >;
+
+export type { ClassValue };

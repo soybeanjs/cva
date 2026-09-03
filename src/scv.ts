@@ -7,7 +7,7 @@ import {
   resolveRuntimeProps,
   resolveSelections
 } from './shared';
-import { cn } from './cn';
+import { clsx, cn as cnMerge } from 'cn';
 import { getCVMeta, getSCVMeta, attachRecipeMeta, getCurrentRecipeProps, withRecipePropsContext } from './internal';
 import type {
   NormalizedSCVCompoundVariant,
@@ -17,7 +17,6 @@ import type {
   SCVRuntimeMeta,
   SlotBlueprint
 } from './internal';
-import { merge } from './merge';
 import { createEmptyRawSlots, mergeConfig, mergeInheritedRaw, pushClassParts } from './merge-config';
 import type {
   ClassValue,
@@ -35,7 +34,7 @@ function createSlotClassParts(map: Partial<Record<string, RecipeClassValue>> | u
   const slots: Record<string, readonly string[]> = {};
 
   for (const [slotName, classValue] of Object.entries(map ?? {})) {
-    const className = cn(classValue);
+    const className = clsx(classValue);
 
     if (!className) {
       continue;
@@ -177,7 +176,7 @@ function buildMergeParts<SlotKeys extends string>(
 
       const current = output[slotName] ?? [];
 
-      current.push(cn(value));
+      current.push(clsx(value));
 
       output[slotName] = current;
     }
@@ -300,7 +299,7 @@ export function scv<
       const baseParts = raw.localUnique[slotName] ?? [];
       const slotParts = mergeParts ? [...baseParts, ...(mergeParts[slotName] ?? [])] : baseParts;
 
-      return [slotName, mergeParts ? merge(slotParts) : cn(slotParts)];
+      return [slotName, mergeParts ? cnMerge(...slotParts) : clsx(slotParts)];
     });
 
     return Object.fromEntries(outputEntries) as Record<SCVOutputSlotKeys<SlotKeys, Extends>, string>;

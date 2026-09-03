@@ -6,14 +6,15 @@ describe('merge engine integration', () => {
     vi.resetModules();
   });
 
-  it('does not call tailwind-merge when merges are not provided', async () => {
+  it('does not call the merge engine when merges are not provided', async () => {
     vi.resetModules();
 
-    const twMerge = vi.fn((value: string) => value);
+    const mergeEngine = vi.fn((...args: unknown[]) => args.join(' '));
 
-    vi.doMock('cn', () => ({
-      twMerge
-    }));
+    vi.doMock('cn', async () => {
+      const actual = await vi.importActual<typeof import('cn')>('cn');
+      return { ...actual, cn: mergeEngine };
+    });
 
     const { cv, scv } = await import('../src/index');
 
@@ -28,7 +29,7 @@ describe('merge engine integration', () => {
 
     button({ size: 'lg' });
 
-    expect(twMerge).not.toHaveBeenCalled();
+    expect(mergeEngine).not.toHaveBeenCalled();
 
     const card = scv({
       slots: {
@@ -47,17 +48,18 @@ describe('merge engine integration', () => {
 
     card({ tone: 'primary' });
 
-    expect(twMerge).not.toHaveBeenCalled();
+    expect(mergeEngine).not.toHaveBeenCalled();
   });
 
-  it('calls tailwind-merge only when merges are provided', async () => {
+  it('calls the merge engine only when merges are provided', async () => {
     vi.resetModules();
 
-    const twMerge = vi.fn((value: string) => value);
+    const mergeEngine = vi.fn((...args: unknown[]) => args.join(' '));
 
-    vi.doMock('cn', () => ({
-      twMerge
-    }));
+    vi.doMock('cn', async () => {
+      const actual = await vi.importActual<typeof import('cn')>('cn');
+      return { ...actual, cn: mergeEngine };
+    });
 
     const { cv, scv } = await import('../src/index');
 
@@ -72,9 +74,10 @@ describe('merge engine integration', () => {
 
     button({ size: 'lg' }, 'mt-4');
 
-    expect(twMerge).toHaveBeenCalledTimes(1);
+    expect(mergeEngine).toHaveBeenCalledTimes(1);
+    expect(mergeEngine).toHaveBeenNthCalledWith(1, 'px-2', 'text-lg', 'mt-4');
 
-    twMerge.mockClear();
+    mergeEngine.mockClear();
 
     const card = scv({
       slots: {
@@ -93,8 +96,8 @@ describe('merge engine integration', () => {
 
     card({ tone: 'primary' }, { root: ['mt-2'] });
 
-    expect(twMerge).toHaveBeenCalledTimes(2);
-    expect(twMerge).toHaveBeenNthCalledWith(1, 'p-2 text-sm');
-    expect(twMerge).toHaveBeenNthCalledWith(2, 'p-4 bg-blue-500 mt-2');
+    expect(mergeEngine).toHaveBeenCalledTimes(2);
+    expect(mergeEngine).toHaveBeenNthCalledWith(1, 'p-2', 'text-sm');
+    expect(mergeEngine).toHaveBeenNthCalledWith(2, 'p-4', 'bg-blue-500', 'mt-2');
   });
 });
