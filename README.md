@@ -9,7 +9,7 @@ High-performance Tailwind CSS variant recipes with split `cv` and `scv` APIs.
 - `defaults`: preset recipe default variants without rebuilding the recipe
 - `extendBase`: compute dynamic base classes or slots from resolved variant props
 - `cn`: flatten `ClassValue` inputs with css-variants style semantics
-- `merge`: merge class parts with `tailwind-merge`
+- `merge`: merge class parts with `cn` conflict resolution
 - `VariantProps`: extract the public variant prop type from a recipe
 - runtime overrides use rest arguments instead of `class` / `className` props
 
@@ -57,7 +57,7 @@ merge(['px-2 text-sm', 'px-4', 'mt-2']);
 // "text-sm px-4 mt-2"
 ```
 
-`merge` is a thin wrapper around `tailwind-merge` and is useful when classes are already collected as string parts.
+`merge` is a thin wrapper around the `twMerge` export of the [`cn`](https://github.com/shadcn-ui/cn) package and is useful when classes are already collected as string parts.
 
 ## `cv`
 
@@ -526,7 +526,7 @@ Inherited variant props from `extend` are included in the extracted type.
 - compound variant conditions can use either a single value or an array of values.
 - `extendBase` receives resolved props, which already include inherited and local `defaultVariants` plus the current call's explicit props.
 - unknown props are ignored at runtime.
-- `tailwind-merge` only runs when runtime override arguments are provided. If you do not pass overrides, the recipe returns the prejoined output directly.
+- the merge engine (`cn`'s `twMerge`) only runs when runtime override arguments are provided. If you do not pass overrides, the recipe returns the prejoined output directly.
 
 ## Development
 
