@@ -1,4 +1,12 @@
-import { merge } from './merge';
+import {
+  matchesConditions,
+  normalizeConditions,
+  normalizeDefaultVariants,
+  normalizeRuntimeDefaultVariants,
+  normalizeVariantSchema,
+  resolveRuntimeProps,
+  resolveSelections
+} from './shared';
 import { cn } from './cn';
 import { getCVMeta, getSCVMeta, attachRecipeMeta, getCurrentRecipeProps, withRecipePropsContext } from './internal';
 import type {
@@ -9,15 +17,7 @@ import type {
   SCVRuntimeMeta,
   SlotBlueprint
 } from './internal';
-import {
-  matchesConditions,
-  normalizeConditions,
-  normalizeDefaultVariants,
-  normalizeRuntimeDefaultVariants,
-  normalizeVariantSchema,
-  resolveRuntimeProps,
-  resolveSelections
-} from './shared';
+import { merge } from './merge';
 import { createEmptyRawSlots, mergeConfig, mergeInheritedRaw, pushClassParts } from './merge-config';
 import type {
   ClassValue,

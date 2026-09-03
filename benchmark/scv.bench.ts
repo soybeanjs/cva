@@ -1,5 +1,4 @@
 import { bench, describe } from 'vitest';
-
 import {
   cssVariantsScvBaseOnly,
   cssVariantsScvComplexCard,

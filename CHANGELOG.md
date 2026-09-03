@@ -1,6 +1,5 @@
 # Changelog
 
-
 ## [v0.0.9](https://github.com/soybeanjs/cva/compare/v0.0.8...v0.0.9) (2026-05-18)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
@@ -96,4 +95,3 @@
 ### &nbsp;&nbsp;&nbsp;❤️ Contributors
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
-

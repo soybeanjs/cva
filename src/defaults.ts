@@ -1,6 +1,6 @@
+import { normalizeDefaultVariants, normalizeRuntimeDefaultVariants } from './shared';
 import { attachRecipeMeta, getCVMeta, getSCVMeta, getCurrentRecipeProps } from './internal';
 import type { CVRuntimeMeta, SCVRuntimeMeta } from './internal';
-import { normalizeDefaultVariants, normalizeRuntimeDefaultVariants } from './shared';
 import type { ClassValue, CVResult, CVVariantsSchema, SCVResult, VariantSchemaBase } from './types';
 
 function mergeProps(

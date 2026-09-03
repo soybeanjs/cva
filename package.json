@@ -23,12 +23,11 @@
     "bench": "vitest bench ./benchmark --run",
     "bench:cv": "vitest bench ./benchmark/cv.bench.ts --run",
     "bench:scv": "vitest bench ./benchmark/scv.bench.ts --run",
-    "build": "tsdown",
+    "build": "vp pack",
     "cleanup": "soy cleanup",
     "commit": "soy git-commit",
-    "lint": "oxlint --fix",
-    "fmt": "oxfmt",
-    "prepare": "simple-git-hooks",
+    "fmt": "vp fmt",
+    "lint": "vp lint",
     "publish-pkg": "pnpm publish --access public",
     "release": "soy release",
     "test": "vitest --run",
@@ -39,26 +38,15 @@
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
-    "@soybeanjs/cli": "^1.7.2",
-    "@types/node": "^25.8.0",
+    "@soybeanjs/cli": "^1.8.2",
+    "@soybeanjs/oxc-config": "^0.2.3",
+    "@types/node": "^26.4.1",
     "class-variance-authority": "^0.7.1",
     "css-variants": "^2.3.5",
-    "lint-staged": "^17.0.5",
-    "oxfmt": "^0.50.0",
-    "oxlint": "^1.65.0",
-    "simple-git-hooks": "^2.13.1",
-    "tailwind-variants": "^3.2.2",
-    "tsdown": "^0.22.0",
-    "tsx": "^4.22.1",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.6"
+    "tailwind-variants": "^3.3.1",
+    "typescript": "^7.0.2",
+    "vite-plus": "catalog:",
+    "vitest": "^4.1.11"
   },
-  "simple-git-hooks": {
-    "commit-msg": "pnpm soy git-commit-verify",
-    "pre-commit": "pnpm typecheck && pnpm lint-staged"
-  },
-  "lint-staged": {
-    "*": "oxlint . --fix && oxfmt"
-  },
-  "packageManager": "pnpm@11.1.2"
+  "packageManager": "pnpm@11.25.0"
 }

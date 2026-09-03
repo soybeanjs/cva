@@ -1,5 +1,4 @@
 import { bench, describe } from 'vitest';
-
 import {
   cssVariantsCvBaseOnly,
   cssVariantsCvComplexButton,

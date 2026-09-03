@@ -1,7 +1,3 @@
-import { merge } from './merge';
-import { cn } from './cn';
-import { attachRecipeMeta, getCVMeta, getCurrentRecipeProps, withRecipePropsContext } from './internal';
-import type { CVRuntimeMeta, NormalizedCVCompoundVariant } from './internal';
 import {
   matchesConditions,
   normalizeConditions,
@@ -11,6 +7,10 @@ import {
   resolveRuntimeProps,
   resolveSelections
 } from './shared';
+import { cn } from './cn';
+import { attachRecipeMeta, getCVMeta, getCurrentRecipeProps, withRecipePropsContext } from './internal';
+import type { CVRuntimeMeta, NormalizedCVCompoundVariant } from './internal';
+import { merge } from './merge';
 import type {
   CVConfig,
   CVExtendEntry,
