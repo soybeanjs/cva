@@ -1,5 +1,15 @@
 # Changelog
 
+## [v0.1.1](https://github.com/soybeanjs/cva/compare/v0.1.0...v0.1.1) (2026-09-03)
+
+### &nbsp;&nbsp;&nbsp;🔥 Performance
+
+- **projects**: memoize cv and scv resolution per selection key &nbsp;-&nbsp; by @soybeanjs [<samp>(b9092)</samp>](https://github.com/soybeanjs/cva/commit/b909299)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [v0.1.0](https://github.com/soybeanjs/cva/compare/v0.0.9...v0.1.0) (2026-09-03)
 
 ### &nbsp;&nbsp;&nbsp;🔥 Performance
