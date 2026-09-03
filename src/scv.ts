@@ -1,12 +1,15 @@
 import { clsx, cn as cnMerge } from 'cn';
 import {
+  buildSelectionKey,
+  collectSelectionKeyNames,
   matchesConditions,
   normalizeConditions,
   normalizeDefaultVariants,
   normalizeRuntimeDefaultVariants,
   normalizeVariantSchema,
   resolveRuntimeProps,
-  resolveSelections
+  resolveSelections,
+  setBounded
 } from './shared';
 import { getCVMeta, getSCVMeta, attachRecipeMeta, getCurrentRecipeProps, withRecipePropsContext } from './internal';
 import type {
@@ -263,6 +266,18 @@ export function scv<
         return output;
       })()
     : undefined;
+  // Recipes without extendBase / extends resolve as a pure function of the selection
+  // vector, so the finalized internal slot records can be memoized per selection key.
+  // extendBase is user code and may capture external state, so such recipes opt out.
+  // The public result record is still assembled per call; only the internal, read-only
+  // slot parts are shared.
+  const rawCache: Map<string, RawSlotsResult> | undefined =
+    resolvedExtends.length === 0 && !extendBase ? new Map() : undefined;
+  const selectionKeyNames = collectSelectionKeyNames(
+    variantNames,
+    localCompoundVariants.map(variant => variant.conditions),
+    defaultVariants
+  );
 
   const meta: SCVRuntimeMeta = {
     // @ts-expect-error ignore config type
@@ -335,7 +350,22 @@ export function scv<
 
   const recipe: SCVResult<SlotKeys, Variants, ResolvedProps> = (props?: ResolvedProps, ...merges) => {
     const resolvedProps = (props as Record<string, unknown> | undefined) ?? getCurrentRecipeProps();
-    const raw = meta.resolveRaw(resolvedProps);
+    let raw: RawSlotsResult;
+
+    if (merges.length === 0 && rawCache) {
+      const selectionKey = buildSelectionKey(resolvedProps, selectionKeyNames, defaultVariants);
+      const cached = rawCache.get(selectionKey);
+
+      if (cached) {
+        raw = cached;
+      } else {
+        raw = meta.resolveRaw(resolvedProps);
+        setBounded(rawCache, selectionKey, raw);
+      }
+    } else {
+      raw = meta.resolveRaw(resolvedProps);
+    }
+
     const mergeParts = merges.length === 0 ? undefined : buildMergeParts(merges, raw.slotPlan);
     const output = {} as Record<SCVOutputSlotKeys<SlotKeys, Extends>, string>;
 

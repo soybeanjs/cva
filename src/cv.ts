@@ -1,12 +1,15 @@
 import { clsx, cn as cnMerge } from 'cn';
 import {
+  buildSelectionKey,
+  collectSelectionKeyNames,
   matchesConditions,
   normalizeConditions,
   normalizeDefaultVariants,
   normalizeRuntimeDefaultVariants,
   normalizeVariantSchema,
   resolveRuntimeProps,
-  resolveSelections
+  resolveSelections,
+  setBounded
 } from './shared';
 import { attachRecipeMeta, getCVMeta, getCurrentRecipeProps, withRecipePropsContext } from './internal';
 import type { CVRuntimeMeta, NormalizedCVCompoundVariant } from './internal';
@@ -106,6 +109,16 @@ export function cv<
   const isStatic =
     variantNames.length === 0 && compoundVariants.length === 0 && preparedExtends.length === 0 && !extendBase;
   const staticOutput: string[] | undefined = isStatic ? (baseClassName ? [baseClassName] : []) : undefined;
+  // Recipes without extendBase / extends resolve as a pure function of the selection
+  // vector, so their joined output can be memoized per selection key. extendBase is user
+  // code and may capture external state, so such recipes opt out.
+  const outputCache: Map<string, string> | undefined =
+    preparedExtends.length === 0 && !extendBase ? new Map() : undefined;
+  const selectionKeyNames = collectSelectionKeyNames(
+    variantNames,
+    compoundVariants.map(variant => variant.conditions),
+    defaultVariants
+  );
 
   const meta: CVRuntimeMeta = {
     config: config as CVConfig<CVVariantsSchema, readonly CVExtendEntry[]>,
@@ -173,6 +186,22 @@ export function cv<
 
   const recipe: CVResult<Variants, ResolvedProps> = (props, ...merges) => {
     const resolvedProps = (props as Record<string, unknown> | undefined) ?? getCurrentRecipeProps();
+
+    if (merges.length === 0 && outputCache) {
+      const selectionKey = buildSelectionKey(resolvedProps, selectionKeyNames, defaultVariants);
+      const cached = outputCache.get(selectionKey);
+
+      if (cached !== undefined) {
+        return cached;
+      }
+
+      const result = clsx(meta.resolveRaw(resolvedProps));
+
+      setBounded(outputCache, selectionKey, result);
+
+      return result;
+    }
+
     const output = meta.resolveRaw(resolvedProps);
 
     if (merges.length === 0) {

@@ -60,6 +60,79 @@ export function normalizeRuntimeDefaultVariants(
   return normalized;
 }
 
+export function collectSelectionKeyNames(
+  variantNames: readonly string[],
+  conditions: readonly (readonly CompiledConditionEntry[])[],
+  defaultVariants: Readonly<Record<string, string>>
+): readonly string[] {
+  const names = [...variantNames];
+  const seen = new Set<string>(names);
+
+  for (const conditionEntries of conditions) {
+    for (const [key] of conditionEntries) {
+      if (!seen.has(key)) {
+        seen.add(key);
+        names.push(key);
+      }
+    }
+  }
+
+  for (const key of Object.keys(defaultVariants)) {
+    if (!seen.has(key)) {
+      seen.add(key);
+      names.push(key);
+    }
+  }
+
+  return names;
+}
+
+/**
+ * Build a cache key that uniquely identifies the resolved selection vector
+ * (`defaults` overridden by normalized `props`), without materializing the
+ * selections object. Unset names contribute an empty segment; an unset name
+ * and an empty-string value collide, but both resolve identically (falsy
+ * selections never match variants or compound conditions).
+ */
+export function buildSelectionKey(
+  props: Record<string, unknown> | undefined,
+  keyNames: readonly string[],
+  defaultVariants: Readonly<Record<string, string>>
+): string {
+  let key = '';
+
+  for (let i = 0; i < keyNames.length; i++) {
+    const name = keyNames[i];
+    let value = props === undefined ? undefined : normalizeVariantValue(props[name]);
+
+    if (value === undefined) {
+      value = defaultVariants[name];
+    }
+
+    if (value !== undefined) {
+      key += value;
+    }
+
+    key += '\u0000';
+  }
+
+  return key;
+}
+
+export const RESOLVE_CACHE_LIMIT = 512;
+
+export function setBounded<Key, Value>(cache: Map<Key, Value>, key: Key, value: Value): void {
+  cache.set(key, value);
+
+  if (cache.size > RESOLVE_CACHE_LIMIT) {
+    const oldest = cache.keys().next();
+
+    if (!oldest.done) {
+      cache.delete(oldest.value);
+    }
+  }
+}
+
 export function normalizeConditions<Entry extends Record<string, unknown>>(
   entry: Entry
 ): readonly CompiledConditionEntry[] {
