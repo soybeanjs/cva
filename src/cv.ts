@@ -1,3 +1,4 @@
+import { clsx, cn as cnMerge } from 'cn';
 import {
   matchesConditions,
   normalizeConditions,
@@ -7,7 +8,6 @@ import {
   resolveRuntimeProps,
   resolveSelections
 } from './shared';
-import { clsx, cn as cnMerge } from 'cn';
 import { attachRecipeMeta, getCVMeta, getCurrentRecipeProps, withRecipePropsContext } from './internal';
 import type { CVRuntimeMeta, NormalizedCVCompoundVariant } from './internal';
 import type {
@@ -96,10 +96,16 @@ export function cv<
   const normalizedVariants = normalizeVariantSchema(config.variants as Variants | undefined, classValue =>
     clsx(classValue as RecipeClassValue | undefined)
   ) as Record<string, Record<string, string>>;
+  const variantNames = Object.keys(normalizedVariants);
   const compoundVariants: readonly NormalizedCVCompoundVariant[] = (config.compoundVariants ?? []).map(variant => ({
     className: clsx(variant.class ?? variant.className),
     conditions: normalizeConditions(variant as Record<string, unknown>)
   }));
+  // Static recipes (no variants, compounds, extends, or extendBase) always resolve to the
+  // base classes; the cached array is treated as read-only by every consumer.
+  const isStatic =
+    variantNames.length === 0 && compoundVariants.length === 0 && preparedExtends.length === 0 && !extendBase;
+  const staticOutput: string[] | undefined = isStatic ? (baseClassName ? [baseClassName] : []) : undefined;
 
   const meta: CVRuntimeMeta = {
     config: config as CVConfig<CVVariantsSchema, readonly CVExtendEntry[]>,
@@ -107,34 +113,46 @@ export function cv<
     runtimeDefaultVariants,
     kind: 'cv',
     resolveRaw: (props?: Record<string, unknown>) => {
-      const selections = resolveSelections(props, defaultVariants);
-      const resolvedProps = resolveRuntimeProps(props, runtimeDefaultVariants, selections);
-      const output: string[] = [];
-
-      for (const source of preparedExtends) {
-        output.push(...source.resolveRaw(resolvedProps));
+      // Static recipes (no variants, compounds, extends, or extendBase) always resolve to
+      // the base classes; the cached array is read-only for every consumer.
+      if (staticOutput) {
+        return staticOutput;
       }
 
-      const extendedBaseClassName = withRecipePropsContext(resolvedProps, () =>
-        clsx(extendBase?.(resolvedProps as CVResolvedProps<NoInfer<Variants>, NoInfer<Extends>>))
-      );
+      const output: string[] = [];
 
-      if (extendedBaseClassName) {
-        output.push(extendedBaseClassName);
+      const selections = resolveSelections(props, defaultVariants);
+
+      if (preparedExtends.length > 0 || extendBase) {
+        const resolvedProps = resolveRuntimeProps(props, runtimeDefaultVariants, selections);
+
+        for (const source of preparedExtends) {
+          output.push(...source.resolveRaw(resolvedProps));
+        }
+
+        if (extendBase) {
+          const extendedBaseClassName = withRecipePropsContext(resolvedProps, () =>
+            clsx(extendBase(resolvedProps as CVResolvedProps<NoInfer<Variants>, NoInfer<Extends>>))
+          );
+
+          if (extendedBaseClassName) {
+            output.push(extendedBaseClassName);
+          }
+        }
       }
 
       if (baseClassName) {
         output.push(baseClassName);
       }
 
-      for (const [variantName, values] of Object.entries(normalizedVariants)) {
+      for (const variantName of variantNames) {
         const selectedValue = selections[variantName];
 
         if (!selectedValue) {
           continue;
         }
 
-        const className = values[selectedValue];
+        const className = normalizedVariants[variantName][selectedValue];
 
         if (className) {
           output.push(className);

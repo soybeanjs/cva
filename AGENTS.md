@@ -30,7 +30,7 @@ Releases are done with `soy release` (`@soybeanjs/cli`); CI (`.github/workflows/
 ## Rules and gotchas
 
 - ESM-only package (`"type": "module"`); named exports only, no default exports.
-- Performance is the product: the merge engine (the `cn` package's `cn`) runs only when runtime override args are passed, and the no-override path returns prejoined output directly. Preserve this fast path when touching `cv.ts`/`scv.ts`.
+- Performance is the product: the merge engine (the `cn` package's `cn`) runs only when runtime override args are passed, and the no-override path returns prejoined output directly. Preserve this fast path when touching `cv.ts`/`scv.ts`. The resolveRaw hot paths avoid per-call `Object.entries` over configs (variant names, compound conditions, and scv slot entries are precomputed at recipe creation) and fully static recipes return cached raw outputs — keep those patterns and re-run `pnpm bench` when touching them.
 - `test/merge-golden.test.ts` freezes the merge engine's outputs for a 15,660-case corpus extracted from soybean-ui styles (baseline produced by tailwind-merge 3.6.0 before the swap to `cn`). Regenerate with `UPDATE_MERGE_GOLDEN=1 pnpm vitest --run test/merge-golden.test.ts` only when an intentional behavior change is being made.
 - `scv` cannot directly extend a `cv` recipe — only slot-mapped entries (`extend: [{ root: someCvRecipe }]`) or other `scv` recipes. `alias` remaps slot names, and runtime overrides must target the renamed slot.
 - `extendBase` receives fully resolved props (inherited + local defaults + call-time props) and runs after inherited `extend` recipes resolve, before local `base` appends.

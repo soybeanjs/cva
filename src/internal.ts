@@ -2,13 +2,11 @@ import type { CVConfig, CVExtendEntry, CVVariantsSchema, SCVConfig, AnySCVResult
 
 export const recipeMetadata = Symbol.for('@soybeanjs/cva.metadata');
 
-export interface NormalizedCompoundCondition {
-  readonly [variant: string]: readonly string[];
-}
+export type CompiledConditionEntry = readonly [variant: string, values: readonly string[]];
 
 export interface NormalizedCVCompoundVariant {
   className: string;
-  conditions: NormalizedCompoundCondition;
+  conditions: readonly CompiledConditionEntry[];
 }
 
 export interface CVRuntimeMeta {
@@ -22,12 +20,13 @@ export interface CVRuntimeMeta {
 export interface SlotBlueprint {}
 
 export interface NormalizedSlotClassParts {
+  slotEntries: readonly (readonly [slotName: string, parts: readonly string[]])[];
   slots: Readonly<Record<string, readonly string[]>>;
 }
 
 export interface NormalizedSCVCompoundVariant {
   classParts: NormalizedSlotClassParts;
-  conditions: NormalizedCompoundCondition;
+  conditions: readonly CompiledConditionEntry[];
 }
 
 export interface RawSlotsResult {

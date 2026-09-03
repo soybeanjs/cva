@@ -1,3 +1,4 @@
+import { clsx, cn as cnMerge } from 'cn';
 import {
   matchesConditions,
   normalizeConditions,
@@ -7,7 +8,6 @@ import {
   resolveRuntimeProps,
   resolveSelections
 } from './shared';
-import { clsx, cn as cnMerge } from 'cn';
 import { getCVMeta, getSCVMeta, attachRecipeMeta, getCurrentRecipeProps, withRecipePropsContext } from './internal';
 import type {
   NormalizedSCVCompoundVariant,
@@ -32,6 +32,7 @@ import type {
 
 function createSlotClassParts(map: Partial<Record<string, RecipeClassValue>> | undefined): NormalizedSlotClassParts {
   const slots: Record<string, readonly string[]> = {};
+  const slotEntries: [string, readonly string[]][] = [];
 
   for (const [slotName, classValue] of Object.entries(map ?? {})) {
     const className = clsx(classValue);
@@ -41,9 +42,10 @@ function createSlotClassParts(map: Partial<Record<string, RecipeClassValue>> | u
     }
 
     slots[slotName] = [className];
+    slotEntries.push([slotName, slots[slotName]]);
   }
 
-  return { slots };
+  return { slotEntries, slots };
 }
 
 function applySlotClassParts(
@@ -53,7 +55,7 @@ function applySlotClassParts(
 ): void {
   const slotTarget = layer === 'inherited' ? target.inheritedShared : target.localShared;
 
-  for (const [slotName, parts] of Object.entries(classParts.slots)) {
+  for (const [slotName, parts] of classParts.slotEntries) {
     if (slotName in target.slotPlan) {
       pushClassParts(slotTarget, slotName, parts);
     }
@@ -212,6 +214,7 @@ export function scv<
   const localVariants = normalizeVariantSchema(config.variants as Variants | undefined, slotMap =>
     createSlotClassParts(slotMap as Partial<Record<string, RecipeClassValue>> | undefined)
   ) as Record<string, Record<string, NormalizedSlotClassParts>>;
+  const variantNames = Object.keys(localVariants);
   const localCompoundVariants: readonly NormalizedSCVCompoundVariant[] = (config.compoundVariants ?? []).map(
     variant => ({
       classParts: createSlotClassParts(variant.class ?? variant.className),
@@ -222,6 +225,45 @@ export function scv<
   const defaultVariants = mergeDefaultVariants(resolvedExtends, config.defaultVariants);
   const runtimeDefaultVariants = mergeRuntimeDefaultVariants(resolvedExtends, config.defaultVariants);
 
+  const hasIgnores = extendIgnore.size > 0;
+
+  const finalizeRawSlots = (output: RawSlotsResult) => {
+    for (const slotName of slotOrder) {
+      const ignored = hasIgnores && extendIgnore.has(slotName);
+      const inheritedParts = ignored ? undefined : output.inheritedShared[slotName];
+      const localParts = output.localShared[slotName];
+
+      output.localUnique[slotName] = inheritedParts
+        ? localParts
+          ? [...inheritedParts, ...localParts]
+          : [...inheritedParts]
+        : localParts
+          ? [...localParts]
+          : [];
+
+      if (ignored) {
+        delete output.inheritedShared[slotName];
+        delete output.inheritedUnique[slotName];
+      }
+    }
+  };
+
+  // Static recipes (no variants, compounds, extends, or extendBase) always resolve to the
+  // same slot classes, so their raw slot result is built once. Consumers only read it:
+  // the recipe fn, mergeInheritedRaw, and alias remapping all copy parts before use.
+  const isStatic =
+    variantNames.length === 0 && localCompoundVariants.length === 0 && resolvedExtends.length === 0 && !extendBase;
+  const staticRawSlots: RawSlotsResult | undefined = isStatic
+    ? (() => {
+        const output = createEmptyRawSlots(slotOrder, slotPlan);
+
+        applySlotClassParts(output, localSlots, 'local');
+        finalizeRawSlots(output);
+
+        return output;
+      })()
+    : undefined;
+
   const meta: SCVRuntimeMeta = {
     // @ts-expect-error ignore config type
     config,
@@ -230,36 +272,46 @@ export function scv<
     kind: 'scv',
     preparedExtends: resolvedExtends,
     resolveRaw: (props?: Record<string, unknown>) => {
-      const output = createEmptyRawSlots(slotOrder, slotPlan);
-      const selections = resolveSelections(props, defaultVariants);
-      const resolvedProps = resolveRuntimeProps(props, runtimeDefaultVariants, selections);
-
-      for (const source of resolvedExtends) {
-        if (source.kind === 'scv') {
-          mergeInheritedRaw(output, source.meta.resolveRaw(resolvedProps));
-          continue;
-        }
-
-        const parts = source.meta.resolveRaw(resolvedProps);
-        pushClassParts(output.inheritedShared, source.slot, parts);
+      if (staticRawSlots) {
+        return staticRawSlots;
       }
 
-      const extendedBaseSlots = withRecipePropsContext(resolvedProps, () =>
-        createSlotClassParts(extendBase?.(resolvedProps as SCVResolvedProps<NoInfer<Variants>, NoInfer<Extends>>))
-      );
+      const output = createEmptyRawSlots(slotOrder, slotPlan);
 
-      applySlotClassParts(output, extendedBaseSlots, 'local');
+      const selections = resolveSelections(props, defaultVariants);
+
+      if (resolvedExtends.length > 0 || extendBase) {
+        const resolvedProps = resolveRuntimeProps(props, runtimeDefaultVariants, selections);
+
+        for (const source of resolvedExtends) {
+          if (source.kind === 'scv') {
+            mergeInheritedRaw(output, source.meta.resolveRaw(resolvedProps));
+            continue;
+          }
+
+          const parts = source.meta.resolveRaw(resolvedProps);
+          pushClassParts(output.inheritedShared, source.slot, parts);
+        }
+
+        if (extendBase) {
+          const extendedBaseSlots = withRecipePropsContext(resolvedProps, () =>
+            createSlotClassParts(extendBase(resolvedProps as SCVResolvedProps<NoInfer<Variants>, NoInfer<Extends>>))
+          );
+
+          applySlotClassParts(output, extendedBaseSlots, 'local');
+        }
+      }
 
       applySlotClassParts(output, localSlots, 'local');
 
-      for (const [variantName, values] of Object.entries(localVariants)) {
+      for (const variantName of variantNames) {
         const selectedValue = selections[variantName];
 
         if (!selectedValue) {
           continue;
         }
 
-        const classParts = values[selectedValue];
+        const classParts = localVariants[variantName][selectedValue];
 
         if (classParts) {
           applySlotClassParts(output, classParts, 'local');
@@ -272,17 +324,7 @@ export function scv<
         }
       }
 
-      for (const slotName of slotOrder) {
-        const inheritedParts = extendIgnore.has(slotName) ? [] : [...(output.inheritedShared[slotName] ?? [])];
-        const localParts = [...(output.localShared[slotName] ?? [])];
-        output.localUnique[slotName] = [...inheritedParts, ...localParts];
-
-        if (extendIgnore.has(slotName)) {
-          delete output.inheritedShared[slotName];
-          delete output.inheritedUnique[slotName];
-        }
-      }
-
+      finalizeRawSlots(output);
       return output;
     },
     slotOrder,
@@ -295,14 +337,16 @@ export function scv<
     const resolvedProps = (props as Record<string, unknown> | undefined) ?? getCurrentRecipeProps();
     const raw = meta.resolveRaw(resolvedProps);
     const mergeParts = merges.length === 0 ? undefined : buildMergeParts(merges, raw.slotPlan);
-    const outputEntries = raw.slotOrder.map(slotName => {
+    const output = {} as Record<SCVOutputSlotKeys<SlotKeys, Extends>, string>;
+
+    for (const slotName of raw.slotOrder) {
       const baseParts = raw.localUnique[slotName] ?? [];
       const slotParts = mergeParts ? [...baseParts, ...(mergeParts[slotName] ?? [])] : baseParts;
 
-      return [slotName, mergeParts ? cnMerge(...slotParts) : clsx(slotParts)];
-    });
+      output[slotName as SCVOutputSlotKeys<SlotKeys, Extends>] = mergeParts ? cnMerge(...slotParts) : clsx(slotParts);
+    }
 
-    return Object.fromEntries(outputEntries) as Record<SCVOutputSlotKeys<SlotKeys, Extends>, string>;
+    return output;
   };
 
   return attachRecipeMeta(recipe, meta) as SCVResult<

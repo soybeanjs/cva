@@ -1,4 +1,4 @@
-import type { NormalizedCompoundCondition } from './internal';
+import type { CompiledConditionEntry } from './internal';
 
 export function normalizeVariantSchema<VariantValue, Output>(
   variants: Readonly<Record<string, Readonly<Record<string, VariantValue>>>> | undefined,
@@ -60,8 +60,10 @@ export function normalizeRuntimeDefaultVariants(
   return normalized;
 }
 
-export function normalizeConditions<Entry extends Record<string, unknown>>(entry: Entry): NormalizedCompoundCondition {
-  const conditions: Record<string, readonly string[]> = {};
+export function normalizeConditions<Entry extends Record<string, unknown>>(
+  entry: Entry
+): readonly CompiledConditionEntry[] {
+  const conditions: CompiledConditionEntry[] = [];
 
   for (const [key, value] of Object.entries(entry)) {
     if (key === 'class' || key === 'className') {
@@ -73,7 +75,7 @@ export function normalizeConditions<Entry extends Record<string, unknown>>(entry
       : [normalizeVariantValue(value)].filter((item): item is string => item !== undefined);
 
     if (normalizedValues.length > 0) {
-      conditions[key] = normalizedValues;
+      conditions.push([key, normalizedValues]);
     }
   }
 
@@ -125,9 +127,9 @@ export function resolveRuntimeProps(
 
 export function matchesConditions(
   selections: Readonly<Record<string, string>>,
-  conditions: NormalizedCompoundCondition
+  conditions: readonly CompiledConditionEntry[]
 ): boolean {
-  for (const [key, expectedValues] of Object.entries(conditions)) {
+  for (const [key, expectedValues] of conditions) {
     const actualValue = selections[key];
 
     if (!actualValue || !expectedValues.includes(actualValue)) {
