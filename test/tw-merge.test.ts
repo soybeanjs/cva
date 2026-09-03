@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-describe('tailwind-merge integration', () => {
+describe('merge engine integration', () => {
   afterEach(() => {
-    vi.doUnmock('tailwind-merge');
+    vi.doUnmock('cn');
     vi.resetModules();
   });
 
@@ -11,7 +11,7 @@ describe('tailwind-merge integration', () => {
 
     const twMerge = vi.fn((value: string) => value);
 
-    vi.doMock('tailwind-merge', () => ({
+    vi.doMock('cn', () => ({
       twMerge
     }));
 
@@ -55,7 +55,7 @@ describe('tailwind-merge integration', () => {
 
     const twMerge = vi.fn((value: string) => value);
 
-    vi.doMock('tailwind-merge', () => ({
+    vi.doMock('cn', () => ({
       twMerge
     }));
 

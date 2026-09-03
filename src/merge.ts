@@ -1,4 +1,4 @@
-import { twMerge } from 'tailwind-merge';
+import { twMerge } from 'cn';
 import { cn } from './cn';
 
 export function merge(parts: readonly string[]): string {

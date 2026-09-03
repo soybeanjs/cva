@@ -14,9 +14,9 @@ importers:
 
   .:
     dependencies:
-      tailwind-merge:
-        specifier: ^3.6.0
-        version: 3.6.0
+      cn:
+        specifier: ^0.2.4
+        version: 0.2.4
     devDependencies:
       '@soybeanjs/cli':
         specifier: ^1.8.2
@@ -965,6 +965,11 @@ packages:
   clsx@2.1.1:
     resolution: {integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==}
     engines: {node: '>=6'}
+
+  cn@0.2.4:
+    resolution: {integrity: sha512-SzQvoh5FwizWtQg9+JueKdjWhlfCZMdu5DqNHm9q1wUlRVmKb9WXlepR9bTTbPwzEOyX1ujJ6lcCppmn3bNUCg==}
+    engines: {node: '>=20'}
+    hasBin: true
 
   confbox@0.2.4:
     resolution: {integrity: sha512-ysOGlgTFbN2/Y6Cg3Iye8YKulHw+R2fNXHrgSmXISQdMnomY6eNDprVdW9R5xBguEqI954+S6709UyiO7B+6OQ==}
@@ -2134,6 +2139,8 @@ snapshots:
 
   clsx@2.1.1: {}
 
+  cn@0.2.4: {}
+
   confbox@0.2.4: {}
 
   consola@3.4.2: {}
@@ -2496,7 +2503,8 @@ snapshots:
 
   strip-final-newline@4.0.0: {}
 
-  tailwind-merge@3.6.0: {}
+  tailwind-merge@3.6.0:
+    optional: true
 
   tailwind-variants@3.3.1(tailwind-merge@3.6.0):
     optionalDependencies:
